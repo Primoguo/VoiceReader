@@ -24,13 +24,11 @@
 		AEF3E69053B4F3DFC9AA3FF3 /* SpeakerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010FCAC7A1C418C1FDDD0BC3 /* SpeakerViewModel.swift */; };
 		B65186DFA68CAA0110AF98C2 /* DocumentRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40292C37BB6F714942F65E06 /* DocumentRowView.swift */; };
 		BFFF14D99BE365358D80FA0A /* PlaybackState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F39EF664636F59FD1FA5C2D /* PlaybackState.swift */; };
-		D5E6F7A8B9C0D1E2F3A4B5C6 /* EdgeTTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F7A8B9C0D1E2F3A4B5C6D7 /* EdgeTTSService.swift */; };
 		E3BF88FE6254C99735AA5ABC /* DocumentListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A3001B76A7D375719E9CF4 /* DocumentListView.swift */; };
 		E448FACB9627E10892C3E3B0 /* TextExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF9D95D8AAA6880C262B67BF /* TextExtractionService.swift */; };
 		E69554A142DFDE312E8A54E8 /* NowPlayingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F996F2721C427DC1CFE8803 /* NowPlayingService.swift */; };
 		F188BAFE84A60CAD8CCDBA5B /* KnowledgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DD135397EAB7233199FA6BB /* KnowledgeApp.swift */; };
 		F369DB20693DA0E82EBE1FF9 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650FA3D5817B693720E7C24A /* SpeechService.swift */; };
-		F6A7B8C9D0E1F2A3B4C5D6E7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F6A7B8C9D0E1F2A3B4C5D6E7 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,9 +57,7 @@
 		C3D4E5F6A7B8C9D0E1F2A3B4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D72A05CEA76127CDE65DB96E /* Document.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Document.swift; sourceTree = "<group>"; };
 		DF9D95D8AAA6880C262B67BF /* TextExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextExtractionService.swift; sourceTree = "<group>"; };
-		E6F7A8B9C0D1E2F3A4B5C6D7 /* EdgeTTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeTTSService.swift; sourceTree = "<group>"; };
-		F5BF48AA40CAD7891EB709FC /* VoiceReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoiceReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6A7B8C9D0E1F2A3B4C5D6E7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F5BF48AA40CAD7891EB709FC /* Knowledge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Knowledge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,7 +97,6 @@
 				51F2B740A37D27FAB273081B /* SpeechSynthesizerProtocol.swift */,
 				DF9D95D8AAA6880C262B67BF /* TextExtractionService.swift */,
 				1A2B3C4D5E6F7A8B9C0D1E2F /* ShareExtensionHandler.swift */,
-				E6F7A8B9C0D1E2F3A4B5C6D7 /* EdgeTTSService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -128,7 +123,6 @@
 			isa = PBXGroup;
 			children = (
 				B706E258FC3352EB1EB7194E /* Info.plist */,
-				F6A7B8C9D0E1F2A3B4C5D6E7 /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -154,7 +148,7 @@
 		BF7A2D27A78D590BDEF15AF2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F5BF48AA40CAD7891EB709FC /* VoiceReader.app */,
+				F5BF48AA40CAD7891EB709FC /* Knowledge.app */,
 				A3B4C5D6E7F8A9B0C1D2E3F4 /* ShareExtension.appex */,
 			);
 			name = Products;
@@ -194,9 +188,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		42AEFBAE01D2DFD981F7DA7D /* VoiceReader */ = {
+		42AEFBAE01D2DFD981F7DA7D /* Knowledge */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AFD04581184175117C78D9AC /* Build configuration list for PBXNativeTarget "VoiceReader" */;
+			buildConfigurationList = AFD04581184175117C78D9AC /* Build configuration list for PBXNativeTarget "Knowledge" */;
 			buildPhases = (
 				F2AB5FB218DA8B84623F4557 /* Sources */,
 				4F6F5CC3FCCF73F75AE9CCF4 /* Frameworks */,
@@ -206,9 +200,9 @@
 			);
 			dependencies = (
 			);
-			name = VoiceReader;
+			name = Knowledge;
 			productName = Knowledge;
-			productReference = F5BF48AA40CAD7891EB709FC /* VoiceReader.app */;
+			productReference = F5BF48AA40CAD7891EB709FC /* Knowledge.app */;
 			productType = "com.apple.product-type.application";
 		};
 		E5F6A7B8C9D0E1F2A3B4C5D6 /* ShareExtension */ = {
@@ -252,7 +246,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				42AEFBAE01D2DFD981F7DA7D /* VoiceReader */,
+				42AEFBAE01D2DFD981F7DA7D /* Knowledge */,
 				E5F6A7B8C9D0E1F2A3B4C5D6 /* ShareExtension */,
 			);
 		};
@@ -309,7 +303,6 @@
 				349299CC2B017ABC5EFBD828 /* PlayerView.swift in Sources */,
 				1ED9AE877F6B92AE3A311987 /* SettingsView.swift in Sources */,
 				0A1B2C3D4E5F6A7B8C9D0E1F /* ShareExtensionHandler.swift in Sources */,
-				D5E6F7A8B9C0D1E2F3A4B5C6 /* EdgeTTSService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -320,13 +313,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "挠荔枝";
+				INFOPLIST_KEY_CFBundleDisplayName = 挠荔枝;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -349,13 +341,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "挠荔枝";
+				INFOPLIST_KEY_CFBundleDisplayName = 挠荔枝;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -481,7 +472,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AFD04581184175117C78D9AC /* Build configuration list for PBXNativeTarget "VoiceReader" */ = {
+		AFD04581184175117C78D9AC /* Build configuration list for PBXNativeTarget "Knowledge" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				683105B965893FCC643C4ECF /* Debug */,
