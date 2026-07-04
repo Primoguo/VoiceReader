@@ -71,8 +71,8 @@ struct DocumentListView: View {
         let title = (url.lastPathComponent as NSString).deletingPathExtension
         do {
             let text = try extractor.extractText(from: url)
-            let doc = Document(title: title, fileName: url.lastPathComponent, fileType: url.pathExtension.lowercased(),
-                               extractedText: text, totalLength: (text as NSString).length)
+            let docType = DocumentType(fileExtension: url.pathExtension.lowercased())
+            let doc = Document(title: title, fileName: url.lastPathComponent, fileType: docType, extractedText: text)
             modelContext.insert(doc)
             try modelContext.save()
         } catch {

@@ -2,17 +2,14 @@
 import Foundation
 import AVFoundation
 
-final class SpeechService: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesizerDelegate {
 
-    @Published var state: PlaybackState = .idle
-    @Published var currentPosition: Int = 0
-
+    private(set) var state: PlaybackState = .idle
     var onPositionChange: ((Int) -> Void)?
-    var onStateChange: ((PlaybackState) -> Void)?
 
     private let synthesizer = AVSpeechSynthesizer()
     private var fullText: String = ""
-    private var config: VoiceConfig = .default
+    private var config: VoiceConfig = .defaultConfig
     private var currentRange = NSRange(location: 0, length: 0)
     private var isManuallyStopped = false
 
@@ -28,10 +25,9 @@ final class SpeechService: NSObject, ObservableObject, AVSpeechSynthesizerDelega
         synthesizer.stopSpeaking(at: .immediate)
     }
 
-    func speak(text: String, from position: Int = 0, config: VoiceConfig = .default) {
+    func speak(text: String, from position: Int = 0, config: VoiceConfig = .defaultConfig) {
         self.fullText = text
         self.config = config
-        self.currentPosition = position
         self.isManuallyStopped = false
 
         let nsText = text as NSString
@@ -94,7 +90,7 @@ final class SpeechService: NSObject, ObservableObject, AVSpeechSynthesizerDelega
     func skipForward(by seconds: TimeInterval = 30) {
         let charsToSkip = Int(seconds) * Self.charsPerSecond
         let nsText = fullText as NSString
-        let newPosition = min(currentPosition + charsToSkip, nsText.length)
+        let newPosition = min(currentRange.location + charsToSkip, nsText.length)
         synthesizer.stopSpeaking(at: .immediate)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
@@ -107,7 +103,7 @@ final class SpeechService: NSObject, ObservableObject, AVSpeechSynthesizerDelega
     }
 
     func skipBackward(by seconds: TimeInterval = 15) {
-        let newPosition = max(currentPosition - Int(seconds) * Self.charsPerSecond, 0)
+        let newPosition = max(currentRange.location - Int(seconds) * Self.charsPerSecond, 0)
         synthesizer.stopSpeaking(at: .immediate)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
@@ -116,6 +112,7 @@ final class SpeechService: NSObject, ObservableObject, AVSpeechSynthesizerDelega
     }
 
     // MARK: - AVSpeechSynthesizerDelegate
+
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         guard !isManuallyStopped else { return }
         let nextPosition = currentRange.location + currentRange.length
@@ -123,12 +120,10 @@ final class SpeechService: NSObject, ObservableObject, AVSpeechSynthesizerDelega
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             if nextPosition >= nsText.length {
-                self.currentPosition = nsText.length
-                self.onPositionChange?(self.currentPosition)
+                self.onPositionChange?(nsText.length)
                 self.updateState(.finished)
             } else {
-                self.currentPosition = nextPosition
-                self.onPositionChange?(self.currentPosition)
+                self.onPositionChange?(nextPosition)
                 self.speak(text: self.fullText, from: nextPosition, config: self.config)
             }
         }
@@ -137,8 +132,8 @@ final class SpeechService: NSObject, ObservableObject, AVSpeechSynthesizerDelega
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, willSpeakRangeOfSpeechString characterRange: NSRange, utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.currentPosition = self.currentRange.location + characterRange.location
-            self.onPositionChange?(self.currentPosition)
+            let pos = self.currentRange.location + characterRange.location
+            self.onPositionChange?(pos)
         }
     }
 
@@ -149,7 +144,6 @@ final class SpeechService: NSObject, ObservableObject, AVSpeechSynthesizerDelega
     private func updateState(_ newState: PlaybackState) {
         DispatchQueue.main.async { [weak self] in
             self?.state = newState
-            self?.onStateChange?(newState)
         }
     }
 }

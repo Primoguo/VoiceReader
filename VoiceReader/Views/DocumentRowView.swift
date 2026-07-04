@@ -7,10 +7,11 @@ struct DocumentRowView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.system(size: 20)).foregroundColor(iconColor)
+            Image(systemName: document.fileType.iconName)
+                .font(.system(size: 20))
+                .foregroundColor(colorFor(document.fileType.iconColor))
                 .frame(width: 44, height: 44)
-                .background(iconColor.opacity(0.12))
+                .background(colorFor(document.fileType.iconColor).opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 4) {
@@ -18,7 +19,7 @@ struct DocumentRowView: View {
                     .font(.system(size: 16, weight: .medium)).lineLimit(1)
                     .foregroundColor(isPlaying ? .blue : .primary)
                 HStack(spacing: 8) {
-                    Text(document.fileType.uppercased())
+                    Text(document.fileType.displayName)
                         .font(.caption2).fontWeight(.medium)
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Color.secondary.opacity(0.12)).clipShape(Capsule())
@@ -40,23 +41,13 @@ struct DocumentRowView: View {
         .padding(.vertical, 6)
     }
 
-    private var icon: String {
-        switch document.fileType {
-        case "pdf": return "doc.richtext"
-        case "docx": return "doc.text"
-        case "xlsx": return "tablecells"
-        case "pptx": return "chart.bar.doc.horizontal"
-        default: return "doc"
-        }
-    }
-
-    private var iconColor: Color {
-        switch document.fileType {
-        case "pdf": return .red
-        case "docx": return .blue
-        case "xlsx": return .green
-        case "pptx": return .orange
-        default: return .gray
+    private func colorFor(_ name: String) -> Color {
+        switch name {
+        case "red":    return .red
+        case "blue":   return .blue
+        case "green":  return .green
+        case "orange": return .orange
+        default:       return .gray
         }
     }
 

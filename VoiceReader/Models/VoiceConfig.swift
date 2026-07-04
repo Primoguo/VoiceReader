@@ -8,5 +8,5 @@ struct VoiceConfig: Equatable, Codable {
     var language: String = "zh-CN"
     var voiceIdentifier: String? = nil
 
-    static let `default` = VoiceConfig()
+    static let defaultConfig = VoiceConfig()
 }

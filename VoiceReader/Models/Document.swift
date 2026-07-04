@@ -2,43 +2,96 @@
 import Foundation
 import SwiftData
 
+/// 支持的文档类型
+enum DocumentType: String, Codable, CaseIterable {
+    case pdf
+    case docx
+    case xlsx
+    case pptx
+    case txt
+    case md
+    case markdown
+    case unknown
+
+    init(fileExtension: String) {
+        self = DocumentType.allCases.first { $0.rawValue == fileExtension.lowercased() } ?? .unknown
+    }
+
+    var displayName: String {
+        rawValue.uppercased()
+    }
+
+    var iconName: String {
+        switch self {
+        case .pdf:  return "doc.richtext"
+        case .docx: return "doc.text"
+        case .xlsx: return "tablecells"
+        case .pptx: return "chart.bar.doc.horizontal"
+        default:    return "doc"
+        }
+    }
+
+    var iconColor: String {
+        switch self {
+        case .pdf:  return "red"
+        case .docx: return "blue"
+        case .xlsx: return "green"
+        case .pptx: return "orange"
+        default:    return "gray"
+        }
+    }
+}
+
 @Model
 final class Document {
     var id: UUID
     var title: String
     var fileName: String
-    var fileType: String          // "pdf", "docx", "xlsx", "pptx", "txt"
+    var fileTypeRaw: String          // 持久化存储用
     var extractedText: String
     var currentPosition: Int
-    var totalLength: Int
     var lastOpenedDate: Date
     var createdAt: Date
     var isFavorite: Bool
-    var progress: Double
+
+    // MARK: - 计算属性（不持久化）
+
+    /// 文档类型枚举
+    var fileType: DocumentType {
+        get { DocumentType(fileExtension: fileTypeRaw) }
+        set { fileTypeRaw = newValue.rawValue }
+    }
+
+    /// 文本总长度（字符数）
+    var totalLength: Int {
+        (extractedText as NSString).length
+    }
+
+    /// 阅读进度（0.0 ~ 1.0）
+    var progress: Double {
+        guard totalLength > 0 else { return 0 }
+        return Double(currentPosition) / Double(totalLength)
+    }
 
     init(
         id: UUID = UUID(),
         title: String,
         fileName: String,
-        fileType: String,
+        fileType: DocumentType = .unknown,
         extractedText: String = "",
         currentPosition: Int = 0,
-        totalLength: Int = 0,
         lastOpenedDate: Date = Date(),
         createdAt: Date = Date(),
-        isFavorite: Bool = false,
-        progress: Double = 0.0
+        isFavorite: Bool = false
     ) {
         self.id = id
         self.title = title
         self.fileName = fileName
-        self.fileType = fileType
+        self.fileTypeRaw = fileType.rawValue
         self.extractedText = extractedText
         self.currentPosition = currentPosition
-        self.totalLength = totalLength
         self.lastOpenedDate = lastOpenedDate
         self.createdAt = createdAt
         self.isFavorite = isFavorite
-        self.progress = progress
     }
 }

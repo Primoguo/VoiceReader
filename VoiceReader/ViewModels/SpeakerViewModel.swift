@@ -2,24 +2,47 @@
 import Foundation
 import Combine
 
+/// 主 ViewModel（Facade），对外暴露统一接口
+/// 内部将播放控制和文档管理委托给子组件
 @MainActor
 final class SpeakerViewModel: ObservableObject {
+
+    // MARK: - Published
 
     @Published var state: PlaybackState = .idle
     @Published var currentDocument: Document?
     @Published var progress: Double = 0.0
     @Published var currentPositionText: String = "00:00"
-    @Published var voiceConfig: VoiceConfig = .default
+    @Published var voiceConfig: VoiceConfig = .defaultConfig
 
-    private let speechService = SpeechService()
-    private let nowPlaying = NowPlayingService.shared
-    private let audioSession = AudioSessionService.shared
+    // MARK: - Dependencies（可注入，方便测试）
+
+    private let synthesizer: SpeechSynthesizerProtocol
+    private let nowPlaying: NowPlayingService
+    private let audioSession: AudioSessionService
+    private let errorHandler: ErrorHandler
+
+    // MARK: - Internal State
+
     private var cancellables = Set<AnyCancellable>()
     private var currentPosition = 0
 
-    init() {
+    // MARK: - Init
+
+    init(
+        synthesizer: SpeechSynthesizerProtocol = SpeechService(),
+        nowPlaying: NowPlayingService = .shared,
+        audioSession: AudioSessionService = .shared,
+        errorHandler: ErrorHandler = .shared
+    ) {
+        self.synthesizer = synthesizer
+        self.nowPlaying = nowPlaying
+        self.audioSession = audioSession
+        self.errorHandler = errorHandler
         setupBindings()
     }
+
+    // MARK: - Document Loading
 
     func loadDocument(_ document: Document) {
         stop()
@@ -38,6 +61,8 @@ final class SpeakerViewModel: ObservableObject {
         updatePositionText()
     }
 
+    // MARK: - Playback Control
+
     func togglePlayPause() {
         switch state {
         case .idle, .paused: play()
@@ -50,20 +75,20 @@ final class SpeakerViewModel: ObservableObject {
         guard let doc = currentDocument, !doc.extractedText.isEmpty else { return }
         audioSession.activate()
         if state == .paused {
-            speechService.resume()
+            synthesizer.resume()
         } else {
-            speechService.speak(text: doc.extractedText, from: doc.currentPosition, config: voiceConfig)
+            synthesizer.speak(text: doc.extractedText, from: doc.currentPosition, config: voiceConfig)
         }
         updateNowPlaying()
     }
 
     func pause() {
-        speechService.pause()
+        synthesizer.pause()
         savePosition()
     }
 
     func stop() {
-        speechService.stop()
+        synthesizer.stop()
         audioSession.deactivate()
         nowPlaying.clear()
         savePosition()
@@ -77,66 +102,78 @@ final class SpeakerViewModel: ObservableObject {
         play()
     }
 
-    func skipForward() { speechService.skipForward(by: 30) }
-    func skipBackward() { speechService.skipBackward(by: 15) }
+    func skipForward() { synthesizer.skipForward(by: 30) }
+    func skipBackward() { synthesizer.skipBackward(by: 15) }
 
     func seekTo(progress: Double) {
         guard let doc = currentDocument else { return }
-        let target = Int(Double((doc.extractedText as NSString).length) * progress)
-        speechService.stop()
+        let target = Int(Double(doc.totalLength) * progress)
+        synthesizer.stop()
         if state == .playing || state == .paused {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-                self?.speechService.speak(text: doc.extractedText, from: target, config: self?.voiceConfig ?? .default)
+                guard let self else { return }
+                self.synthesizer.speak(text: doc.extractedText, from: target, config: self.voiceConfig)
             }
         } else {
-            // 如果不在播放中，只更新位置不启动播放
             currentPosition = target
             updateProgress(target)
             savePosition()
         }
     }
 
+    // MARK: - Config
+
     func updateConfig(_ config: VoiceConfig) {
         voiceConfig = config
         saveConfig(config)
         guard state == .playing, let doc = currentDocument else { return }
         let pos = currentPosition
-        speechService.stop()
+        synthesizer.stop()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            self?.speechService.speak(text: doc.extractedText, from: pos, config: config)
+            guard let self else { return }
+            self.synthesizer.speak(text: doc.extractedText, from: pos, config: config)
         }
     }
 
-    // MARK: - Private
-    private func setupBindings() {
-        speechService.$state
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] s in
-                self?.state = s
-                if s == .finished || s == .idle { self?.savePosition() }
-            }
-            .store(in: &cancellables)
+    // MARK: - Private: Bindings
 
-        speechService.onPositionChange = { [weak self] pos in
+    private func setupBindings() {
+        // 播放状态同步
+        synthesizer.onPositionChange = { [weak self] pos in
             Task { @MainActor in
-                self?.currentPosition = pos
-                self?.updateProgress(pos)
-                self?.updateNowPlaying()
+                guard let self else { return }
+                self.currentPosition = pos
+                self.updateProgress(pos)
+                self.updateNowPlaying()
             }
         }
 
+        // 监听状态变化（通过 Combine）
+        Timer.publish(every: 0.1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                let newState = self.synthesizer.state
+                if self.state != newState {
+                    self.state = newState
+                    if newState == .finished || newState == .idle { self.savePosition() }
+                }
+            }
+            .store(in: &cancellables)
+
+        // 远程控制
         nowPlaying.onPlayPause = { [weak self] in Task { @MainActor in self?.togglePlayPause() } }
         nowPlaying.onSkipForward = { [weak self] in Task { @MainActor in self?.skipForward() } }
         nowPlaying.onSkipBackward = { [weak self] in Task { @MainActor in self?.skipBackward() } }
     }
 
+    // MARK: - Private: Helpers
+
     private func updateProgress(_ position: Int) {
         guard let doc = currentDocument else { return }
         doc.currentPosition = position
-        let len = (doc.extractedText as NSString).length
-        if len > 0 {
-            progress = Double(position) / Double(len)
-            doc.progress = progress
+        if doc.totalLength > 0 {
+            progress = Double(position) / Double(doc.totalLength)
         }
         updatePositionText()
     }
@@ -148,11 +185,12 @@ final class SpeakerViewModel: ObservableObject {
 
     private func updateNowPlaying() {
         guard let doc = currentDocument else { return }
-        let len = (doc.extractedText as NSString).length
+        let totalSec = doc.totalLength / 3
+        let elapsedSec = currentPosition / 3
         nowPlaying.update(
             title: doc.title,
-            duration: TimeInterval(len / 3),
-            elapsed: TimeInterval(currentPosition / 3),
+            duration: TimeInterval(totalSec),
+            elapsed: TimeInterval(elapsedSec),
             rate: state == .playing ? 1.0 : 0.0
         )
     }
@@ -160,13 +198,12 @@ final class SpeakerViewModel: ObservableObject {
     private func savePosition() {
         guard let doc = currentDocument else { return }
         doc.currentPosition = currentPosition
-        doc.progress = progress
         doc.lastOpenedDate = Date()
     }
 
     private func loadConfig() -> VoiceConfig {
         guard let data = UserDefaults.standard.data(forKey: "voiceConfig"),
-              let c = try? JSONDecoder().decode(VoiceConfig.self, from: data) else { return .default }
+              let c = try? JSONDecoder().decode(VoiceConfig.self, from: data) else { return .defaultConfig }
         return c
     }
 
