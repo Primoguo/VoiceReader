@@ -1,0 +1,601 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+		A194D25DE4933223F1FD5C63 /* AppDelegate.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A78E2B8E17719705B9B76D0D /* AppDelegate.swift */;
+		
+		};
+
+		F188BAFE84A60CAD8CCDBA5B /* VoiceReaderApp.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = ADD135397EAB7233199FA6BB /* VoiceReaderApp.swift */;
+		
+		};
+
+		A02ECEBA48841EAB8D168BB9 /* Document.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = D72A05CEA76127CDE65DB96E /* Document.swift */;
+		
+		};
+
+		BFFF14D99BE365358D80FA0A /* PlaybackState.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = AF39EF664636F59FD1FA5C2D /* PlaybackState.swift */;
+		
+		};
+
+		A5F9774DA2884E0E2618AEBD /* VoiceConfig.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = AB997CE9364FC87DE4EA6A8F /* VoiceConfig.swift */;
+		
+		};
+
+		AE93C25917D659F4C7B4E091 /* AudioSessionService.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = AB96D7B260A7F7AE01CBF76A /* AudioSessionService.swift */;
+		
+		};
+
+		E69554A142DFDE312E8A54E8 /* NowPlayingService.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = AF996F2721C427DC1CFE8803 /* NowPlayingService.swift */;
+		
+		};
+
+		F369DB20693DA0E82EBE1FF9 /* SpeechService.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A50FA3D5817B693720E7C24A /* SpeechService.swift */;
+		
+		};
+
+		E448FACB9627E10892C3E3B0 /* TextExtractionService.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = DF9D95D8AAA6880C262B67BF /* TextExtractionService.swift */;
+		
+		};
+
+		A53ECC30484D9C731164235D /* DocumentPicker.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = AFEEB5DCA74C026513A9C662 /* DocumentPicker.swift */;
+		
+		};
+
+		AEF3E69053B4F3DFC9AA3FF3 /* SpeakerViewModel.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A10FCAC7A1C418C1FDDD0BC3 /* SpeakerViewModel.swift */;
+		
+		};
+
+		A5628E832B173A79A78C0748 /* ContentView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A1D103445FE21E8FBB0D7ACE /* ContentView.swift */;
+		
+		};
+
+		E3BF88FE6254C99735AA5ABC /* DocumentListView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A9A3001B76A7D375719E9CF4 /* DocumentListView.swift */;
+		
+		};
+
+		B65186DFA68CAA0110AF98C2 /* DocumentRowView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A0292C37BB6F714942F65E06 /* DocumentRowView.swift */;
+		
+		};
+
+		A55B319EC4410490DB345C29 /* PlayerControlsView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A1E7259B8612CC32A8F21C00 /* PlayerControlsView.swift */;
+		
+		};
+
+		A49299CC2B017ABC5EFBD828 /* PlayerView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = A53FF0E7B7908D487C2B608E /* PlayerView.swift */;
+		
+		};
+
+		AED9AE877F6B92AE3A311987 /* SettingsView.swift in Sources */ = {
+			isa = PBXBuildFile;
+			fileRef = AFE0F01778A82A0CDF274BF0 /* SettingsView.swift */;
+		
+		};
+
+		A97C29AD63741CF438998CE6 /* VoiceReader.app */ = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.application;
+			includeInIndex = 0;
+			path = VoiceReader.app;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		
+		};
+
+		A78E2B8E17719705B9B76D0D /* AppDelegate.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = AppDelegate.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		ADD135397EAB7233199FA6BB /* VoiceReaderApp.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = VoiceReaderApp.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		D72A05CEA76127CDE65DB96E /* Document.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = Document.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		AF39EF664636F59FD1FA5C2D /* PlaybackState.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PlaybackState.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		AB997CE9364FC87DE4EA6A8F /* VoiceConfig.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = VoiceConfig.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		AB96D7B260A7F7AE01CBF76A /* AudioSessionService.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = AudioSessionService.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		AF996F2721C427DC1CFE8803 /* NowPlayingService.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = NowPlayingService.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		A50FA3D5817B693720E7C24A /* SpeechService.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SpeechService.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		DF9D95D8AAA6880C262B67BF /* TextExtractionService.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = TextExtractionService.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		AFEEB5DCA74C026513A9C662 /* DocumentPicker.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DocumentPicker.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		A10FCAC7A1C418C1FDDD0BC3 /* SpeakerViewModel.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SpeakerViewModel.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		A1D103445FE21E8FBB0D7ACE /* ContentView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = ContentView.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		A9A3001B76A7D375719E9CF4 /* DocumentListView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DocumentListView.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		A0292C37BB6F714942F65E06 /* DocumentRowView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = DocumentRowView.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		A1E7259B8612CC32A8F21C00 /* PlayerControlsView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PlayerControlsView.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		A53FF0E7B7908D487C2B608E /* PlayerView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PlayerView.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		AFE0F01778A82A0CDF274BF0 /* SettingsView.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = SettingsView.swift;
+			sourceTree = "<group>";
+		
+		};
+
+		B706E258FC3352EB1EB7194E /* Info.plist */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = Info.plist;
+			sourceTree = "<group>";
+		
+		};
+
+		A9B2D46AA747A59804D46E1F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		
+		};
+
+		A928955287B8089ED2177128 = {
+			isa = PBXGroup;
+			children = (
+				FE910D29D648D8F2EA669AEF /* App */,
+				ACF43B31E8845D861542A38E /* Models */,
+				A64EAF51B7DD4639ADD9B985 /* Services */,
+				B38EA53192EBA9BEB7FA8255 /* UIKit */,
+				A20CEB417186B52ECF642348 /* ViewModels */,
+				C454586A1F4E28C340BDC1AD /* Views */,
+				A5B877375D6D6297BAAF2860 /* Resources */,
+				BF7A2D27A78D590BDEF15AF2 /* Products */,
+			);
+			indentWidth = 4;
+			path = "";
+			sourceTree = "<group>";
+			usesTabs = 0;
+		
+		};
+
+		FE910D29D648D8F2EA669AEF /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A78E2B8E17719705B9B76D0D /* AppDelegate.swift */,
+				ADD135397EAB7233199FA6BB /* VoiceReaderApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		
+		};
+
+		ACF43B31E8845D861542A38E /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				D72A05CEA76127CDE65DB96E /* Document.swift */,
+				AF39EF664636F59FD1FA5C2D /* PlaybackState.swift */,
+				AB997CE9364FC87DE4EA6A8F /* VoiceConfig.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		
+		};
+
+		A64EAF51B7DD4639ADD9B985 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AB96D7B260A7F7AE01CBF76A /* AudioSessionService.swift */,
+				AF996F2721C427DC1CFE8803 /* NowPlayingService.swift */,
+				A50FA3D5817B693720E7C24A /* SpeechService.swift */,
+				DF9D95D8AAA6880C262B67BF /* TextExtractionService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		
+		};
+
+		B38EA53192EBA9BEB7FA8255 /* UIKit */ = {
+			isa = PBXGroup;
+			children = (
+				AFEEB5DCA74C026513A9C662 /* DocumentPicker.swift */,
+			);
+			path = UIKit;
+			sourceTree = "<group>";
+		
+		};
+
+		A20CEB417186B52ECF642348 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				A10FCAC7A1C418C1FDDD0BC3 /* SpeakerViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		
+		};
+
+		C454586A1F4E28C340BDC1AD /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A1D103445FE21E8FBB0D7ACE /* ContentView.swift */,
+				A9A3001B76A7D375719E9CF4 /* DocumentListView.swift */,
+				A0292C37BB6F714942F65E06 /* DocumentRowView.swift */,
+				A1E7259B8612CC32A8F21C00 /* PlayerControlsView.swift */,
+				A53FF0E7B7908D487C2B608E /* PlayerView.swift */,
+				AFE0F01778A82A0CDF274BF0 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		
+		};
+
+		A5B877375D6D6297BAAF2860 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B706E258FC3352EB1EB7194E /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		
+		};
+
+		BF7A2D27A78D590BDEF15AF2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A97C29AD63741CF438998CE6 /* VoiceReader.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		
+		};
+
+		A2AEFBAE01D2DFD981F7DA7D /* VoiceReader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BDE09DA5951A34FB3893A2ED /* Build configuration list for PBXNativeTarget "VoiceReader" */;
+			buildPhases = (
+				E7209FB05162B7572F88D05E /* Sources */,
+				A9B2D46AA747A59804D46E1F /* Frameworks */,
+				A6F8606E9F0A136E2228EBCB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = VoiceReader;
+			productName = VoiceReader;
+			productReference = A97C29AD63741CF438998CE6 /* VoiceReader.app */;
+			productType = "com.apple.product-type.application";
+		
+		};
+
+		A299AC4324DC18342A8CCD96 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+			};
+			buildConfigurationList = CA97FAEF9773D40E682C4137 /* Build configuration list for PBXProject "VoiceReader" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "zh-Hans";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = A928955287B8089ED2177128;
+			productRefGroup = BF7A2D27A78D590BDEF15AF2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A2AEFBAE01D2DFD981F7DA7D /* VoiceReader */,
+			);
+		
+		};
+
+		A6F8606E9F0A136E2228EBCB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		
+		};
+
+		E7209FB05162B7572F88D05E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A194D25DE4933223F1FD5C63 /* AppDelegate.swift in Sources */,
+				F188BAFE84A60CAD8CCDBA5B /* VoiceReaderApp.swift in Sources */,
+				A02ECEBA48841EAB8D168BB9 /* Document.swift in Sources */,
+				BFFF14D99BE365358D80FA0A /* PlaybackState.swift in Sources */,
+				A5F9774DA2884E0E2618AEBD /* VoiceConfig.swift in Sources */,
+				AE93C25917D659F4C7B4E091 /* AudioSessionService.swift in Sources */,
+				E69554A142DFDE312E8A54E8 /* NowPlayingService.swift in Sources */,
+				F369DB20693DA0E82EBE1FF9 /* SpeechService.swift in Sources */,
+				E448FACB9627E10892C3E3B0 /* TextExtractionService.swift in Sources */,
+				A53ECC30484D9C731164235D /* DocumentPicker.swift in Sources */,
+				AEF3E69053B4F3DFC9AA3FF3 /* SpeakerViewModel.swift in Sources */,
+				A5628E832B173A79A78C0748 /* ContentView.swift in Sources */,
+				E3BF88FE6254C99735AA5ABC /* DocumentListView.swift in Sources */,
+				B65186DFA68CAA0110AF98C2 /* DocumentRowView.swift in Sources */,
+				A55B319EC4410490DB345C29 /* PlayerControlsView.swift in Sources */,
+				A49299CC2B017ABC5EFBD828 /* PlayerView.swift in Sources */,
+				AED9AE877F6B92AE3A311987 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		
+		};
+
+		AF553ED564EB4143D28737B9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		
+		};
+
+		A8D8ABCCB945710026C39602 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		
+		};
+
+		D76C9AE50B902522C365F983 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VoiceReader;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.voicereader.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		
+		};
+
+		DADBBA2E3EC6E6A3EE3F5542 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VoiceReader;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.voicereader.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		
+		};
+
+		CA97FAEF9773D40E682C4137 /* Build configuration list for PBXProject "VoiceReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF553ED564EB4143D28737B9 /* Debug */,
+				A8D8ABCCB945710026C39602 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		
+		};
+
+		BDE09DA5951A34FB3893A2ED /* Build configuration list for PBXNativeTarget "VoiceReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D76C9AE50B902522C365F983 /* Debug */,
+				DADBBA2E3EC6E6A3EE3F5542 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		
+		};
+
+	};
+	rootObject = A299AC4324DC18342A8CCD96 /* Project object */;
+}
