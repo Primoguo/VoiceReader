@@ -1,5 +1,4 @@
 // VoiceReader/Models/Document.swift
-// 占位模型 — Task 2 会完善
 import Foundation
 import SwiftData
 
@@ -8,7 +7,7 @@ final class Document {
     var id: UUID
     var title: String
     var fileName: String
-    var fileType: String
+    var fileType: String          // "pdf", "docx", "xlsx", "pptx", "txt"
     var extractedText: String
     var currentPosition: Int
     var totalLength: Int
