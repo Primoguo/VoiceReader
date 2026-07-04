@@ -36,6 +36,23 @@ struct SettingsView: View {
                         speakerVM.voiceConfig = config
                         saveConfig()
                     }
+                    // Edge TTS 降级提示
+                    if let msg = speakerVM.engineFallbackMessage {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange).font(.caption)
+                            Text(msg)
+                                .font(.caption).foregroundColor(.orange)
+                        }
+                        .onAppear {
+                            // 同步 UI 状态
+                            selectedEngine = .system
+                            // 3 秒后自动清除提示
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                speakerVM.engineFallbackMessage = nil
+                            }
+                        }
+                    }
                 }
 
                 Section("朗读设置") {

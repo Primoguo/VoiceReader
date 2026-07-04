@@ -7,6 +7,8 @@ protocol SpeechSynthesizerProtocol: AnyObject {
     var onPositionChange: ((Int) -> Void)? { get set }
     /// 当前朗读的字符范围（全文绝对位置）
     var onRangeChange: ((NSRange) -> Void)? { get set }
+    /// 引擎发生不可恢复错误时回调（用于上层降级）
+    var onError: ((Error) -> Void)? { get set }
 
     func speak(text: String, from position: Int, config: VoiceConfig)
     func pause()

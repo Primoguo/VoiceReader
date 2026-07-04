@@ -33,15 +33,15 @@ struct VoiceConfig: Equatable, Codable {
 
     static let defaultConfig = VoiceConfig()
 
-    /// 常用语速档位
+    /// 常用语速档位（Edge TTS 使用平缓映射，系统 TTS 线性映射）
     static let speedPresets: [(label: String, value: Float)] = [
-        ("0.5x", 0.25),
-        ("0.75x", 0.38),
+        ("0.7x", 0.35),
+        ("0.85x", 0.425),
         ("1x", 0.5),
-        ("1.5x", 0.75),
-        ("2x", 1.0),
-        ("2.5x", 1.25),
-        ("3x", 1.5),
-        ("4x", 2.0),
+        ("1.2x", 0.7),
+        ("1.5x", 1.0),
+        ("2x", 1.5),
+        ("2.5x", 1.75),
+        ("3x", 2.0),
     ]
 }

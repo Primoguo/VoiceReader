@@ -1,6 +1,7 @@
 // VoiceReader/Services/EdgeTTSService.swift
 import Foundation
 import AVFoundation
+import CryptoKit
 
 /// Edge TTS 语音合成引擎（微软免费 TTS）
 /// 通过 WebSocket 连接微软语音服务，流式接收音频并播放
@@ -11,6 +12,7 @@ final class EdgeTTSService: NSObject, SpeechSynthesizerProtocol {
     private(set) var state: PlaybackState = .idle
     var onPositionChange: ((Int) -> Void)?
     var onRangeChange: ((NSRange) -> Void)?
+    var onError: ((Error) -> Void)?
 
     // MARK: - Internal State
 
@@ -172,13 +174,17 @@ final class EdgeTTSService: NSObject, SpeechSynthesizerProtocol {
         // 生成 SSML
         let voiceName = Self.voiceMap[config.language] ?? Self.voiceMap["zh-CN"]!
         let rateStr: String
-        let edgeRate = config.rate / 0.5 // 归一化：0.5 对应 1.0x
-        if edgeRate <= 0.3 {
+        // config.rate 范围 0.1~2.0，基准 0.5 = 正常语速
+        // Edge TTS 的 prosody rate 对中文加速很激进，使用平缓映射：
+        //   rate=0.5 → "+0%" (正常), rate=1.0 → "+30%" (1.3x), rate=2.0 → "+60%" (1.6x)
+        let edgeRate = config.rate / 0.5 // 0.5 → 1.0
+        let mappedRate = 1.0 + (edgeRate - 1.0) * 0.3
+        if mappedRate <= 0.5 {
             rateStr = "-50%"
-        } else if edgeRate >= 3.0 {
+        } else if mappedRate >= 2.0 {
             rateStr = "+100%"
         } else {
-            let pct = Int((edgeRate - 1.0) * 100)
+            let pct = Int((mappedRate - 1.0) * 100)
             rateStr = pct >= 0 ? "+\(pct)%" : "\(pct)%"
         }
 
@@ -198,8 +204,7 @@ final class EdgeTTSService: NSObject, SpeechSynthesizerProtocol {
 
     private func moveToNextChunk() {
         let nsText = fullText as NSString
-        let nextStart = currentPosition
-        if nextStart >= nsText.length {
+        if currentPosition >= nsText.length {
             onPositionChange?(nsText.length)
             updateState(.finished)
         } else {
@@ -207,19 +212,62 @@ final class EdgeTTSService: NSObject, SpeechSynthesizerProtocol {
         }
     }
 
+    // MARK: - Sec-MS-GEC Token Generation
+
+    private static let trustedClientToken = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
+    private static let winEpochOffset: UInt64 = 11644473600
+    private static let secMsGecVersion = "1-143.0.3650.75"
+
+    /// 生成 Microsoft Edge TTS 所需的 Sec-MS-GEC 请求头值
+    /// 算法参考 edge-tts 项目：https://github.com/rany2/edge-tts
+    private static func generateSecMsGec() -> String {
+        let unixTime = UInt64(Date().timeIntervalSince1970)
+        var ticks = unixTime + winEpochOffset
+        ticks -= ticks % 300
+        ticks *= 10_000_000
+        let plain = "\(ticks)\(trustedClientToken)"
+        guard let data = plain.data(using: .ascii) else { return "" }
+        let hash = SHA256.hash(data: data)
+        return hash.compactMap { String(format: "%02X", $0) }.joined()
+    }
+
+    /// 生成 Edge TTS 所需的 X-Timestamp 格式时间戳
+    /// 格式: "Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+    private static func generateTimestamp() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "GMT")
+        formatter.dateFormat = "EEE MMM dd yyyy HH:mm:ss 'GMT+0000 (Coordinated Universal Time)'"
+        return formatter.string(from: Date())
+    }
+
     // MARK: - WebSocket Communication
 
     private func synthesize(ssml: String, chunkRange: NSRange) {
-        // Edge TTS WebSocket endpoint
-        let urlString = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4"
+        // Edge TTS WebSocket endpoint with all required params
+        let connectionId = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        var components = URLComponents(string: "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1")!
+        components.queryItems = [
+            URLQueryItem(name: "TrustedClientToken", value: Self.trustedClientToken),
+            URLQueryItem(name: "ConnectionId", value: connectionId),
+            URLQueryItem(name: "Sec-MS-GEC", value: Self.generateSecMsGec()),
+            URLQueryItem(name: "Sec-MS-GEC-Version", value: Self.secMsGecVersion),
+        ]
 
-        guard let url = URL(string: urlString) else {
+        guard let url = components.url else {
             updateState(.idle)
             return
         }
 
         var request = URLRequest(url: url)
         request.timeoutInterval = 60
+        // 模拟 Edge 浏览器 WebSocket 请求头（与 edge-tts constants.py 保持一致）
+        request.setValue("chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold", forHTTPHeaderField: "Origin")
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("no-cache", forHTTPHeaderField: "Pragma")
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        request.setValue("gzip, deflate, br, zstd", forHTTPHeaderField: "Accept-Encoding")
+        request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
 
         webSocketTask = urlSession.webSocketTask(with: request)
         webSocketTask?.resume()
@@ -228,10 +276,10 @@ final class EdgeTTSService: NSObject, SpeechSynthesizerProtocol {
         audioData = Data()
         pendingSSML = ssml
 
-        // 发送配置消息
+        // 发送配置消息（与 edge-tts communicate.py 格式完全一致）
+        let timestamp = Self.generateTimestamp()
         let configMessage = """
-        Content-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n
-        {"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":false,"wordBoundaryEnabled":true},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}
+        X-Timestamp:\(timestamp)\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}
         """
 
         webSocketTask?.send(.string(configMessage)) { [weak self] error in
@@ -240,8 +288,9 @@ final class EdgeTTSService: NSObject, SpeechSynthesizerProtocol {
                 self?.handleError()
                 return
             }
-            // 发送 SSML
-            let ssmlMessage = "X-RequestId:\(UUID().uuidString)\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n\(ssml)"
+            // 发送 SSML（X-Timestamp 带 Z 后缀是微软的已知 bug）
+            let requestId = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+            let ssmlMessage = "X-RequestId:\(requestId)\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:\(timestamp)Z\r\nPath:ssml\r\n\r\n\(ssml)"
             self?.webSocketTask?.send(.string(ssmlMessage)) { error in
                 if let error = error {
                     print("🔊 Edge TTS SSML error: \(error)")
@@ -328,7 +377,7 @@ final class EdgeTTSService: NSObject, SpeechSynthesizerProtocol {
 
         // 更新状态和位置
         currentPosition = chunkRange.location + chunkRange.length
-        onPositionChange?(chunkRange.location)
+        onPositionChange?(currentPosition)
 
         // 通知范围变化（模拟高亮整个 chunk）
         onRangeChange?(chunkRange)
@@ -410,9 +459,12 @@ final class EdgeTTSService: NSObject, SpeechSynthesizerProtocol {
 
     private func handleError() {
         cleanupConnection()
-        // 如果还没有播放过任何内容，标记为错误状态
+        // 如果还没有播放过任何内容，通知上层降级
         if chunkIndex == 0 && audioData.isEmpty {
             updateState(.idle)
+            let error = NSError(domain: "EdgeTTSService", code: -1,
+                                userInfo: [NSLocalizedDescriptionKey: "Edge TTS 连接失败，已自动切换到系统 TTS"])
+            onError?(error)
         } else {
             moveToNextChunk()
         }

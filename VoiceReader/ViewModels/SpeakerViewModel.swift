@@ -16,6 +16,8 @@ final class SpeakerViewModel: ObservableObject {
     @Published var voiceConfig: VoiceConfig = .defaultConfig
     /// 当前朗读的字符范围（全文绝对位置），用于 UI 高亮
     @Published var highlightRange: NSRange = NSRange(location: 0, length: 0)
+    /// TTS 引擎降级提示信息（nil 表示无降级）
+    @Published var engineFallbackMessage: String?
 
     // MARK: - Dependencies（可注入，方便测试）
 
@@ -183,6 +185,42 @@ final class SpeakerViewModel: ObservableObject {
         synthesizer.onRangeChange = { [weak self] range in
             Task { @MainActor in
                 self?.highlightRange = range
+            }
+        }
+
+        // 引擎错误 → 自动降级到系统 TTS
+        synthesizer.onError = { [weak self] error in
+            Task { @MainActor in
+                guard let self else { return }
+                // 只有 Edge 引擎才需要降级
+                guard self.synthesizer is EdgeTTSService else { return }
+
+                print("🔄 Edge TTS 失败，自动降级到系统 TTS: \(error.localizedDescription)")
+
+                let wasPlaying = self.state == .playing
+                let currentPos = self.currentPosition
+                let currentDoc = self.currentDocument
+
+                // 切换到系统引擎
+                self.synthesizer.stop()
+                self.synthesizer = self.systemSynthesizer
+                self.setupBindings()
+
+                // 更新配置为系统引擎并持久化
+                var config = self.voiceConfig
+                config.engine = .system
+                self.voiceConfig = config
+                self.saveConfig(config)
+
+                // 显示降级提示
+                self.engineFallbackMessage = "Edge TTS 暂时不可用，已自动切换到系统 TTS"
+
+                // 如果之前在播放，用系统引擎恢复
+                if wasPlaying, let doc = currentDoc {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self.synthesizer.speak(text: doc.extractedText, from: currentPos, config: config)
+                    }
+                }
             }
         }
 

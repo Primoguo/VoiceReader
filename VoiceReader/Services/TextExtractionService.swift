@@ -122,19 +122,40 @@ final class TextExtractionService {
     /// 手动去除 HTML 标签
     private func stripHTMLTags(_ html: String) -> String {
         var text = html
-        // 去除 script/style 标签及内容
+        
+        // 1. 去除 script/style/noscript/head 标签及内容
         text = text.replacingOccurrences(of: "<script[^>]*>[\\s\\S]*?</script>", with: "", options: [.regularExpression, .caseInsensitive])
         text = text.replacingOccurrences(of: "<style[^>]*>[\\s\\S]*?</style>", with: "", options: [.regularExpression, .caseInsensitive])
         text = text.replacingOccurrences(of: "<noscript[^>]*>[\\s\\S]*?</noscript>", with: "", options: [.regularExpression, .caseInsensitive])
-        // 去除 head 标签内容
         text = text.replacingOccurrences(of: "<head[^>]*>[\\s\\S]*?</head>", with: "", options: [.regularExpression, .caseInsensitive])
-        // 去除 HTML 注释
+        
+        // 2. 去除常见导航/菜单/广告/弹窗相关标签
+        let navTags = ["nav", "header", "footer", "aside", "menu", "sidebar", "dialog", "modal", "popup", "banner", "advertisement"]
+        for tag in navTags {
+            text = text.replacingOccurrences(of: "<\(tag)[^>]*>[\\s\\S]*?</\(tag)>", with: "", options: [.regularExpression, .caseInsensitive])
+        }
+        
+        // 3. 去除常见导航类名（class 属性包含 nav/menu/header 等）
+        let navClassPatterns = [
+            #"<div[^>]*class="[^"]*(?:nav|menu|header|footer|sidebar|popup|modal|banner|advertisement)[^"]*"[^>]*>[\s\S]*?</div>"#,
+            #"<ul[^>]*class="[^"]*(?:nav|menu|breadcrumb|pagination)[^"]*"[^>]*>[\s\S]*?</ul>"#,
+            #"<li[^>]*class="[^"]*(?:nav|menu)[^"]*"[^>]*>[\s\S]*?</li>"#,
+        ]
+        for pattern in navClassPatterns {
+            text = text.replacingOccurrences(of: pattern, with: "", options: [.regularExpression, .caseInsensitive])
+        }
+        
+        // 4. 去除 HTML 注释
         text = text.replacingOccurrences(of: "<!--[\\s\\S]*?-->", with: "", options: .regularExpression)
-        // 将块级元素替换为换行
-        text = text.replacingOccurrences(of: "</?(div|p|h[1-6]|li|tr|br|article|section|header|footer|main|aside|nav)[^>]*>", with: "\n", options: [.regularExpression, .caseInsensitive])
-        // 去除所有剩余 HTML 标签
+        
+        // 5. 将块级元素替换为换行
+        text = text.replacingOccurrences(of: "</?(div|p|h[1-6]|li|tr|article|section|main|blockquote|pre|figure|figcaption)[^>]*>", with: "\n", options: [.regularExpression, .caseInsensitive])
+        text = text.replacingOccurrences(of: "</?(br|hr)[^>]*>", with: "\n", options: [.regularExpression, .caseInsensitive])
+        
+        // 6. 去除所有剩余 HTML 标签
         text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        // 解码 HTML 实体
+        
+        // 7. 解码 HTML 实体
         text = text.replacingOccurrences(of: "&nbsp;", with: " ")
         text = text.replacingOccurrences(of: "&amp;", with: "&")
         text = text.replacingOccurrences(of: "&lt;", with: "<")
@@ -143,9 +164,18 @@ final class TextExtractionService {
         text = text.replacingOccurrences(of: "&#39;", with: "'")
         text = text.replacingOccurrences(of: "&ldquo;", with: "\u{201C}")
         text = text.replacingOccurrences(of: "&rdquo;", with: "\u{201D}")
-        // 清理多余空行
+        text = text.replacingOccurrences(of: "&lsquo;", with: "\u{2018}")
+        text = text.replacingOccurrences(of: "&rsquo;", with: "\u{2019}")
+        text = text.replacingOccurrences(of: "&hellip;", with: "\u{2026}")
+        text = text.replacingOccurrences(of: "&mdash;", with: "\u{2014}")
+        text = text.replacingOccurrences(of: "&ndash;", with: "\u{2013}")
+        
+        // 8. 去除多余空行和空白
         text = text.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
-        return text
+        text = text.replacingOccurrences(of: "[ \\t]+\n", with: "\n", options: .regularExpression)
+        text = text.replacingOccurrences(of: "\n[ \\t]+", with: "\n", options: .regularExpression)
+        
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - PDF

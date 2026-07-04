@@ -44,7 +44,7 @@ struct PlayerControlsView: View {
     }
 
     private let quickSpeeds: [(label: String, value: Float)] = [
-        ("0.5x", 0.25), ("1x", 0.5), ("1.5x", 0.75), ("2x", 1.0), ("3x", 1.5),
+        ("0.7x", 0.35), ("1x", 0.5), ("1.2x", 0.7), ("1.5x", 1.0), ("2x", 1.5),
     ]
 }
 

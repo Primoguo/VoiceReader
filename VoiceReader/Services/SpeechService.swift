@@ -7,6 +7,7 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
     private(set) var state: PlaybackState = .idle
     var onPositionChange: ((Int) -> Void)?
     var onRangeChange: ((NSRange) -> Void)?
+    var onError: ((Error) -> Void)?
 
     private let synthesizer = AVSpeechSynthesizer()
     private var fullText: String = ""
