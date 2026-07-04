@@ -1,17 +1,18 @@
 // VoiceReader/Views/ContentView.swift
-// 占位视图 — Task 8 会替换
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        NavigationStack {
-            Text("VoiceReader")
-                .font(.largeTitle)
-                .navigationTitle("有声阅读器")
-        }
-    }
-}
+    @StateObject private var speakerVM = SpeakerViewModel()
 
-#Preview {
-    ContentView()
+    var body: some View {
+        TabView {
+            DocumentListView(speakerVM: speakerVM)
+                .tabItem { Label("书库", systemImage: "books.vertical.fill") }
+            PlayerView(speakerVM: speakerVM)
+                .tabItem { Label("正在播放", systemImage: "headphones") }
+            SettingsView(speakerVM: speakerVM)
+                .tabItem { Label("设置", systemImage: "gearshape.fill") }
+        }
+        .tint(.blue)
+    }
 }
