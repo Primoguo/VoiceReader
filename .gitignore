@@ -1,0 +1,13 @@
+# IDE
+.codebuddy/
+
+# 临时辅助脚本
+copy_pbxproj.py
+fix_pbxproj.py
+modify_pbxproj.py
+
+# website 独立仓库
+website/
+
+# macOS
+.DS_Store
