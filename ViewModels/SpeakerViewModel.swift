@@ -33,6 +33,16 @@ final class SpeakerViewModel: ObservableObject {
     @Published var isGeneratingSummary = false
     @Published var summaryError: String?
 
+    // MARK: - AI 伴读（默认隐藏，开启时将 enableCompanion 改为 true）
+
+    /// ⚠️ 功能开关：改为 true 即可启用 AI 伴读入口
+    let enableCompanion = false
+
+    @Published var companionMessages: [CompanionMessage] = []
+    @Published var isAskingCompanion = false
+    /// 标记伴读进入时是否暂停了朗读，退出时自动恢复
+    var companionPausedPlay = false
+
     // MARK: - Internal State
 
     private var cancellables = Set<AnyCancellable>()
@@ -81,6 +91,7 @@ final class SpeakerViewModel: ObservableObject {
     func loadDocument(_ document: Document) {
         stop()
         currentDocument = document
+        resetCompanion() // 切换文档时重置伴读对话
         let savedConfig = loadConfig()
 
         // 自动检测文档语言并匹配语音
@@ -208,6 +219,59 @@ final class SpeakerViewModel: ObservableObject {
         let summaryText = result.content + "\n\n" + result.keyPoints.joined(separator: "\n")
         synthesizer.stop()
         synthesizer.speak(text: summaryText, from: 0, config: voiceConfig)
+    }
+
+    // MARK: - AI 伴读
+
+    /// 向 AI 提问
+    func askCompanion(question: String) async {
+        // 添加用户消息
+        companionMessages.append(CompanionMessage(content: question, isUser: true))
+        // 添加 loading 占位
+        companionMessages.append(CompanionMessage(content: "", isUser: false, isLoading: true))
+
+        isAskingCompanion = true
+
+        // 提取当前朗读位置上下文
+        let context = extractCompanionContext()
+
+        do {
+            let response = try await CompanionService.shared.ask(question: question, context: context)
+            await MainActor.run {
+                // 移除 loading 占位，添加真实回复
+                companionMessages.removeAll { $0.isLoading }
+                companionMessages.append(CompanionMessage(content: response, isUser: false))
+                isAskingCompanion = false
+            }
+        } catch {
+            await MainActor.run {
+                companionMessages.removeAll { $0.isLoading }
+                companionMessages.append(CompanionMessage(content: "⚠️ \(error.localizedDescription)", isUser: false))
+                isAskingCompanion = false
+            }
+        }
+    }
+
+    /// 重置伴读对话
+    func resetCompanion() {
+        companionMessages.removeAll()
+        CompanionService.shared.resetConversation()
+    }
+
+    /// 提取当前朗读位置前后的文本上下文（500 字范围）
+    private func extractCompanionContext() -> String {
+        guard let doc = currentDocument, !doc.extractedText.isEmpty else {
+            return "（暂无朗读内容）"
+        }
+        let text = doc.extractedText
+        let pos = currentPosition
+        let range = 500
+        let start = max(0, pos - range)
+        let end = min(text.count, pos + range)
+
+        let startIndex = text.index(text.startIndex, offsetBy: start)
+        let endIndex = text.index(text.startIndex, offsetBy: end)
+        return String(text[startIndex..<endIndex])
     }
 
     // MARK: - Private: Bindings

@@ -5,6 +5,7 @@ struct PlayerView: View {
     @ObservedObject var speakerVM: SpeakerViewModel
     @State private var scrollProxy: ScrollViewProxy?
     @State private var showSummary = false
+    @State private var showCompanion = false
 
     var body: some View {
         NavigationStack {
@@ -44,6 +45,15 @@ struct PlayerView: View {
             .navigationTitle("正在播放")
             .toolbar {
                 if let doc = speakerVM.currentDocument, !doc.extractedText.isEmpty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        // AI 伴读按钮（默认隐藏，在 SpeakerViewModel.enableCompanion = true 时显示）
+                        if speakerVM.enableCompanion {
+                            Button(action: { showCompanion = true }) {
+                                Image(systemName: "bubble.left.and.bubble.right")
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(action: { showSummary = true }) {
                             Image(systemName: "sparkles")
@@ -55,6 +65,9 @@ struct PlayerView: View {
             }
             .sheet(isPresented: $showSummary) {
                 summarySheet
+            }
+            .sheet(isPresented: $showCompanion) {
+                CompanionView(speakerVM: speakerVM)
             }
         }
     }
