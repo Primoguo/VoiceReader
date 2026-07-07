@@ -41,31 +41,36 @@ struct SettingsView: View {
 
                 Section("语音引擎") {
                     ForEach(TTSEngine.allCases.filter { $0.isSupported }, id: \.self) { engine in
-                        Button(action: {
-                            selectedEngine = engine
-                            speakerVM.switchEngine(to: engine)
-                        }) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(engine.displayName)
-                                    Text(engine.description)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                if selectedEngine == engine {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.accentColor)
-                                }
-                                // 标注推荐选项
-                                if engine == .system {
-                                    Text("推荐")
-                                        .font(.caption2)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.accentColor.opacity(0.15))
-                                        .cornerRadius(4)
-                                        .foregroundColor(.accentColor)
+                        // Knowledge Voice 标记为即将推出（灰化不可选）
+                        if engine == .knowledgeVoice {
+                            comingSoonEngineRow(engine: engine)
+                        } else {
+                            Button(action: {
+                                selectedEngine = engine
+                                speakerVM.switchEngine(to: engine)
+                            }) {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(engine.displayName)
+                                        Text(engine.description)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    if selectedEngine == engine {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.accentColor)
+                                    }
+                                    // 标注推荐选项
+                                    if engine == .system {
+                                        Text("推荐")
+                                            .font(.caption2)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.accentColor.opacity(0.15))
+                                            .cornerRadius(4)
+                                            .foregroundColor(.accentColor)
+                                    }
                                 }
                             }
                         }
@@ -232,5 +237,39 @@ struct SettingsView: View {
         if let data = try? JSONEncoder().encode(config) {
             UserDefaults.standard.set(data, forKey: "voiceConfig")
         }
+    }
+    
+    // MARK: - Coming Soon Engine Row
+    
+    @ViewBuilder
+    private func comingSoonEngineRow(engine: TTSEngine) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(engine.displayName)
+                        .foregroundColor(.primary)
+                    
+                    Text("即将推出")
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15))
+                        .cornerRadius(4)
+                        .foregroundColor(.orange)
+                }
+                
+                Text(engine.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // 禁用状态图标
+            Image(systemName: "lock.fill")
+                .foregroundColor(.gray)
+        }
+        .opacity(0.6)  // 整体半透明效果
+        .disabled(true)  // 禁用点击
     }
 }

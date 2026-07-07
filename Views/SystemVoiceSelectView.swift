@@ -89,6 +89,18 @@ struct SystemVoiceSelectView: View {
                 (voice.language.hasPrefix("zh-") || voice.language.hasPrefix("yue-")) && voice.isNeural
             }
             
+            // 调试信息：打印所有中文相关音色
+            print("\n=== 中文音色调试信息 ===")
+            let chineseVoices = voices.filter { voice in
+                voice.language.hasPrefix("zh") || voice.language.hasPrefix("yue") || voice.language.hasPrefix("cmn")
+            }
+            print("总计中文相关音色: \(chineseVoices.count)")
+            for voice in chineseVoices {
+                let neuralTag = voice.isNeural ? " [Neural]" : ""
+                print("  - \(voice.name) (\(voice.language))\(neuralTag)")
+            }
+            print("=========================\n")
+            
             // 加载当前选中的音色
             if let currentId = speakerVM.voiceConfig.voiceIdentifier {
                 selectedVoiceId = currentId
