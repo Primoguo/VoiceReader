@@ -40,11 +40,12 @@ struct SettingsView: View {
 
                 Section("语音引擎") {
                     ForEach(TTSEngine.allCases, id: \.self) { engine in
+                        // 只显示支持的引擎
+                        guard engine.isSupported else { return }
+                        
                         Button(action: {
-                            if engine != .knowledgeVoice {
-                                selectedEngine = engine
-                                speakerVM.switchEngine(to: engine)
-                            }
+                            selectedEngine = engine
+                            speakerVM.switchEngine(to: engine)
                         }) {
                             HStack {
                                 VStack(alignment: .leading) {
@@ -58,18 +59,18 @@ struct SettingsView: View {
                                     Image(systemName: "checkmark")
                                         .foregroundColor(.accentColor)
                                 }
-                                if engine == .knowledgeVoice {
-                                    Text("即将推出")
+                                // 标注推荐选项
+                                if engine == .system {
+                                    Text("推荐")
                                         .font(.caption2)
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
-                                        .background(Color(.systemGray5))
+                                        .background(Color.accentColor.opacity(0.15))
                                         .cornerRadius(4)
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.accentColor)
                                 }
                             }
                         }
-                        .foregroundColor(engine == .knowledgeVoice ? .secondary : .primary)
                     }
                 }
 

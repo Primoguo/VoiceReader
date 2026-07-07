@@ -3,20 +3,32 @@ import Foundation
 
 /// 语音合成引擎类型
 enum TTSEngine: String, Codable, CaseIterable {
-    case system = "system"
-    case knowledgeVoice = "knowledgeVoice"
+    case system = "system"           // iOS 17+ Neural TTS（默认）
+    case knowledgeVoice = "knowledgeVoice"  // CosyVoice API（高级功能）
+    case legacySystem = "legacySystem"      // 传统系统 TTS（降级兼容）
 
     var displayName: String {
         switch self {
-        case .system: return "系统 TTS"
+        case .system: return "Apple Neural TTS"
         case .knowledgeVoice: return "Knowledge Voice"
+        case .legacySystem: return "传统系统 TTS"
         }
     }
 
     var description: String {
         switch self {
-        case .system: return "iOS 系统内置语音，离线可用"
-        case .knowledgeVoice: return "AI 语音合成，高品质音色（即将推出）"
+        case .system: return "iOS 17+ 神经网络增强版，音质自然，离线可用 "
+        case .knowledgeVoice: return "AI 云端合成，支持语音克隆，需配置 API Key"
+        case .legacySystem: return "兼容旧版本 iOS，音质较基础"
+        }
+    }
+    
+    /// 是否支持当前设备
+    var isSupported: Bool {
+        if #available(iOS 17.0, *) {
+            return true  // 所有引擎都支持
+        } else {
+            return self != .system  // iOS < 17 不支持 Neural TTS
         }
     }
 }

@@ -61,10 +61,21 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
         utterance.pitchMultiplier = config.pitchMultiplier
         utterance.volume = config.volume
 
-        if let identifier = config.voiceIdentifier {
-            utterance.voice = AVSpeechSynthesisVoice(identifier: identifier)
+        // 根据引擎类型选择语音质量
+        if #available(iOS 17.0, *) {
+            // iOS 17+ 使用 Neural TTS（增强版）
+            if let identifier = config.voiceIdentifier {
+                utterance.voice = AVSpeechSynthesisVoice(identifier: identifier)
+            } else {
+                utterance.voice = AVSpeechSynthesisVoice(language: config.language)
+            }
         } else {
-            utterance.voice = AVSpeechSynthesisVoice(language: config.language)
+            // iOS < 17 降级到传统 TTS
+            if let identifier = config.voiceIdentifier {
+                utterance.voice = AVSpeechSynthesisVoice(identifier: identifier)
+            } else {
+                utterance.voice = AVSpeechSynthesisVoice(language: config.language)
+            }
         }
 
         synthesizer.speak(utterance)

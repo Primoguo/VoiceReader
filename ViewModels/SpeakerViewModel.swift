@@ -65,8 +65,14 @@ final class SpeakerViewModel: ObservableObject {
 
     /// 根据配置切换语音引擎
     func switchEngine(to engine: TTSEngine) {
+        // 检查引擎是否支持当前设备
+        if !engine.isSupported {
+            print("⚠️ 引擎 \(engine.displayName) 不支持当前设备，使用默认引擎")
+            return
+        }
+        
         switch engine {
-        case .system:
+        case .system, .legacySystem:
             synthesizer = systemSynthesizer
         case .knowledgeVoice:
             synthesizer = cosyVoiceSynthesizer
@@ -301,7 +307,7 @@ final class SpeakerViewModel: ObservableObject {
                 print("🔊 TTS 引擎错误: \(error.localizedDescription)")
                 // Knowledge Voice 出错时降级到系统 TTS
                 if self.voiceConfig.engine == .knowledgeVoice {
-                    print("⬇️ 降级到系统 TTS")
+                    print("️ 降级到 Apple Neural TTS")
                     self.voiceConfig.engine = .system
                     self.synthesizer = self.systemSynthesizer
                     self.setupBindings()
