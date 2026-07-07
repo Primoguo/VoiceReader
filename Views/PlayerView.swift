@@ -114,49 +114,123 @@ struct PlayerView: View {
 
     // MARK: - Highlight Text
 
+    /// 将文本按段落拆分，每段独立渲染，支持精准滚动跟随
     private func highlightTextView(doc: Document) -> some View {
-        ScrollViewReader { proxy in
+        let paragraphs = splitIntoParagraphs(doc.extractedText)
+
+        return ScrollViewReader { proxy in
             ScrollView {
-                Text(highlightedAttributedText(for: doc))
-                    .font(.system(size: 17, design: .serif))
-                    .lineSpacing(6)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .id("highlightBlock")
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(paragraphs.enumerated()), id: \.offset) { index, para in
+                        Text(highlightedParagraph(para, globalOffset: para.offset))
+                            .font(.system(size: 17, design: .serif))
+                            .lineSpacing(6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .id("para_\(index)")
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 4)
             }
             .background(Color(.systemGroupedBackground))
             .cornerRadius(12)
             .onAppear { scrollProxy = proxy }
-            .onChange(of: speakerVM.highlightRange.location) {
-                // 自动滚动到当前朗读位置
-                withAnimation {
-                    proxy.scrollTo("highlightBlock", anchor: .center)
+            .onChange(of: activeParagraphIndex(paragraphs: paragraphs)) { newIndex in
+                guard newIndex >= 0 else { return }
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    proxy.scrollTo("para_\(newIndex)", anchor: .top)
                 }
             }
         }
     }
 
-    private func highlightedAttributedText(for doc: Document) -> AttributedString {
-        let nsText = doc.extractedText as NSString
-        let fullText = doc.extractedText
-        var attributed = AttributedString(fullText)
+    /// 段落信息（文本 + 在全文中的起始偏移）
+    private struct ParagraphInfo {
+        let text: String
+        let offset: Int  // NSString UTF-16 偏移
+    }
 
-        // 全文默认样式
+    /// 按换行拆分文本为段落，记录每段的全文偏移
+    private func splitIntoParagraphs(_ text: String) -> [ParagraphInfo] {
+        let nsText = text as NSString
+        var result: [ParagraphInfo] = []
+
+        // 优先用 \n\n 分段，如果只有一段则回退到 \n
+        var separator = "\n\n"
+        var blocks = text.components(separatedBy: separator)
+        if blocks.count <= 1 {
+            separator = "\n"
+            blocks = text.components(separatedBy: separator)
+        }
+
+        var offset = 0
+        for block in blocks {
+            let trimmed = block.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                // 在原文中搜索此段落的位置
+                let searchFrom = offset
+                let firstChars = (trimmed as NSString).substring(
+                    to: min(15, (trimmed as NSString).length)
+                )
+                let searchRange = NSRange(location: searchFrom, length: nsText.length - searchFrom)
+                let foundRange = nsText.range(of: firstChars, range: searchRange)
+                let paraOffset = foundRange.location != NSNotFound ? foundRange.location : offset
+
+                result.append(ParagraphInfo(text: trimmed, offset: paraOffset))
+            }
+            offset += (block as NSString).length + (separator as NSString).length
+        }
+
+        // 如果分段失败，返回整段
+        if result.isEmpty {
+            result.append(ParagraphInfo(text: text, offset: 0))
+        }
+
+        return result
+    }
+
+    /// 当前高亮所在的段落索引
+    private func activeParagraphIndex(paragraphs: [ParagraphInfo]) -> Int {
+        let loc = speakerVM.highlightRange.location
+        guard loc >= 0 else { return -1 }
+
+        for i in (0..<paragraphs.count).reversed() {
+            if loc >= paragraphs[i].offset {
+                return i
+            }
+        }
+        return 0
+    }
+
+    /// 为单个段落生成高亮 AttributedString
+    private func highlightedParagraph(_ para: ParagraphInfo, globalOffset: Int) -> AttributedString {
+        var attributed = AttributedString(para.text)
         attributed.foregroundColor = .primary
 
-        // 高亮当前朗读范围
         let range = speakerVM.highlightRange
-        if range.location >= 0, range.length > 0,
-           range.location < nsText.length {
-            let validLength = min(range.length, nsText.length - range.location)
-            let safeRange = NSRange(location: range.location, length: validLength)
+        let paraEnd = globalOffset + (para.text as NSString).length
 
-            if let stringRange = Range(safeRange, in: fullText),
-               let attrRange = AttributedString.Index(stringRange.lowerBound, within: attributed)
-                .map({ $0..<AttributedString.Index(stringRange.upperBound, within: attributed)! }) {
-                attributed[attrRange].foregroundColor = .accentColor
-                attributed[attrRange].font = .system(size: 17, weight: .bold, design: .serif)
-                attributed[attrRange].backgroundColor = Color.accentColor.opacity(0.1)
+        // 检查高亮范围是否与当前段落有交集
+        if range.location >= 0, range.length > 0,
+           range.location < paraEnd,
+           range.location + range.length > globalOffset {
+
+            // 计算段落内的局部高亮范围
+            let localStart = max(0, range.location - globalOffset)
+            let localEnd = min((para.text as NSString).length, range.location + range.length - globalOffset)
+            let localLength = localEnd - localStart
+
+            if localLength > 0 {
+                let nsRange = NSRange(location: localStart, length: localLength)
+                if let stringRange = Range(nsRange, in: para.text) {
+                    let lower = AttributedString.Index(stringRange.lowerBound, within: attributed)
+                    let upper = AttributedString.Index(stringRange.upperBound, within: attributed)
+                    if let lower, let upper {
+                        attributed[lower..<upper].foregroundColor = .accentColor
+                        attributed[lower..<upper].font = .system(size: 17, weight: .bold, design: .serif)
+                        attributed[lower..<upper].backgroundColor = Color.accentColor.opacity(0.15)
+                    }
+                }
             }
         }
 
