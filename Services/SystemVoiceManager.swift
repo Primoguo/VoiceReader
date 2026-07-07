@@ -13,7 +13,13 @@ final class SystemVoiceManager {
         guard #available(iOS 17.0, *) else { return [] }
         
         return AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix("zh-") || $0.language.hasPrefix("cmn-") }
+            .filter { voice in
+                // 过滤中文语音（包括普通话和粤语）
+                let isChinese = voice.language.hasPrefix("zh-") || voice.language.hasPrefix("cmn-")
+                // 优先选择 Neural TTS（eloquence 系列或 super-compact）
+                let isNeural = voice.identifier.contains("eloquence") || voice.identifier.contains("super-compact")
+                return isChinese && isNeural
+            }
             .sorted { $0.name < $1.name }
     }
     
@@ -32,18 +38,21 @@ final class SystemVoiceManager {
             return AVSpeechSynthesisVoice(language: language)
         }
         
-        // 优先选择 Neural 增强版
+        // 优先选择 Neural TTS 音色（eloquence 系列）
         let voices = AVSpeechSynthesisVoice.speechVoices()
             .filter { $0.language == language }
         
-        // 尝试找 Enhanced 或 Premium 版本
-        if let enhanced = voices.first(where: { 
-            $0.quality == .enhanced || $0.name.contains("Enhanced") || $0.name.contains("Premium")
-        }) {
-            return enhanced
+        // 第一优先级：eloquence 系列（真正的 Neural TTS）
+        if let neural = voices.first(where: { $0.identifier.contains("eloquence") }) {
+            return neural
         }
         
-        // 其次选择默认
+        // 第二优先级：super-compact 系列
+        if let compact = voices.first(where: { $0.identifier.contains("super-compact") }) {
+            return compact
+        }
+        
+        // 最后：任意可用音色
         return voices.first ?? AVSpeechSynthesisVoice(language: language)
     }
     
@@ -51,10 +60,10 @@ final class SystemVoiceManager {
     func isNeuralVoice(identifier: String) -> Bool {
         guard #available(iOS 17.0, *) else { return false }
         
-        if let voice = AVSpeechSynthesisVoice(identifier: identifier) {
-            return voice.quality == .enhanced || voice.quality == .premium
-        }
-        return false
+        // iOS 17+ 的 Neural TTS 通过 identifier 识别：
+        // - com.apple.eloquence.* （主要 Neural TTS 系列）
+        // - com.apple.voice.super-compact.* （紧凑版 Neural TTS）
+        return identifier.contains("eloquence") || identifier.contains("super-compact")
     }
 }
 
@@ -71,17 +80,20 @@ struct SystemVoiceInfo: Identifiable, Equatable {
         self.name = voice.name
         self.language = voice.language
         
+        // iOS 17+ 的 Neural TTS 通过 identifier 识别，而非 quality 属性
+        // quality 属性在 iOS 17+ 中始终返回 .default，即使对于 Neural TTS
         if #available(iOS 17.0, *) {
-            self.isNeural = voice.quality == .enhanced || voice.quality == .premium
-            switch voice.quality {
-            case .enhanced:
-                self.quality = "增强版"
-            case .premium:
-                self.quality = "高级版"
-            case .default:
+            self.isNeural = voice.identifier.contains("eloquence") || voice.identifier.contains("super-compact")
+            
+            // 根据是否为 Neural TTS 显示不同的质量标签
+            if self.isNeural {
+                if voice.identifier.contains("super-compact") {
+                    self.quality = "Neural（紧凑版）"
+                } else {
+                    self.quality = "Neural（增强版）"
+                }
+            } else {
                 self.quality = "标准版"
-            @unknown default:
-                self.quality = "未知"
             }
         } else {
             self.isNeural = false
