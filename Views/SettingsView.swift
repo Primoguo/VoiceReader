@@ -39,10 +39,7 @@ struct SettingsView: View {
                 }
 
                 Section("语音引擎") {
-                    ForEach(TTSEngine.allCases, id: \.self) { engine in
-                        // 只显示支持的引擎
-                        guard engine.isSupported else { return }
-                        
+                    ForEach(TTSEngine.allCases.filter { $0.isSupported }, id: \.self) { engine in
                         Button(action: {
                             selectedEngine = engine
                             speakerVM.switchEngine(to: engine)
