@@ -124,7 +124,6 @@
 			isa = PBXGroup;
 			children = (
 				EBF3685A2FFD0E0D001AEF1A /* SystemVoiceManager.swift */,
-				EBF368582FFD0CCE001AEF1A /* SystemVoiceSelectView.swift */,
 				EB15D8782FFD07130098B690 /* CompanionView.swift */,
 				EB15D8762FFD06EF0098B690 /* CompanionMessage.swift */,
 				EB15D8742FFD06DD0098B690 /* CompanionService 2.swift */,
@@ -231,6 +230,7 @@
 				26C68A4A417DC388729302A2 /* SummaryCardView.swift */,
 				6F0F5553C0145BB8213C1372 /* VoiceCloneView.swift */,
 				A1FF96F1D51F3ADFDC9934A4 /* VoiceSelectView.swift */,
+				EBF368582FFD0CCE001AEF1A /* SystemVoiceSelectView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -355,7 +355,6 @@
 				B65186DFA68CAA0110AF98C2 /* DocumentRowView.swift in Sources */,
 				A55B319EC4410490DB345C29 /* PlayerControlsView.swift in Sources */,
 				349299CC2B017ABC5EFBD828 /* PlayerView.swift in Sources */,
-				EBF3685D2FFD0E21001AEF1A /* SystemVoiceSelectView.swift in Sources */,
 				1ED9AE877F6B92AE3A311987 /* SettingsView.swift in Sources */,
 				0A1B2C3D4E5F6A7B8C9D0E1F /* ShareExtensionHandler.swift in Sources */,
 				ACF2CBD6D61B4FB18C7E0CFF /* ThemeMode.swift in Sources */,
