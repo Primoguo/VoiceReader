@@ -35,6 +35,12 @@ struct PlayerView: View {
                                 }
                             }.padding(.horizontal, 24)
 
+                            // AI 功能栏（进度条下方，始终可见）
+                            if doc.extractedText.isEmpty == false {
+                                aiFeatureBar
+                                    .padding(.horizontal, 24)
+                            }
+
                             // 控制按钮
                             PlayerControlsView(speakerVM: speakerVM).padding(.horizontal, 24)
                         }
@@ -45,36 +51,7 @@ struct PlayerView: View {
                 }
             }
             .navigationTitle("正在播放")
-            .toolbar {
-                if let doc = speakerVM.currentDocument, !doc.extractedText.isEmpty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        // AI 伴读按钮（始终可见，未付费时弹付费墙）
-                        Button(action: {
-                            if subscriptionManager.isPremium {
-                                showCompanion = true
-                            } else {
-                                showPaywall = true
-                            }
-                        }) {
-                            Image(systemName: "bubble.left.and.bubble.right")
-                                .foregroundColor(.accentColor)
-                        }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: {
-                            if subscriptionManager.isPremium {
-                                showSummary = true
-                            } else {
-                                showPaywall = true
-                            }
-                        }) {
-                            Image(systemName: "sparkles")
-                                .foregroundColor(.accentColor)
-                        }
-                        .disabled(speakerVM.isGeneratingSummary)
-                    }
-                }
-            }
+            .toolbar { }
             .sheet(isPresented: $showSummary) {
                 summarySheet
             }
@@ -124,6 +101,56 @@ struct PlayerView: View {
                     .font(.caption).foregroundColor(.secondary)
             }
             Spacer()
+        }
+    }
+
+    // MARK: - AI Feature Bar
+
+    /// AI 功能按钮栏（进度条下方，始终可见）
+    private var aiFeatureBar: some View {
+        HStack(spacing: 12) {
+            // AI 总结
+            Button(action: {
+                if subscriptionManager.isPremium {
+                    showSummary = true
+                } else {
+                    showPaywall = true
+                }
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                    Text("AI 总结")
+                }
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.accentColor)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.accentColor.opacity(0.1))
+                .cornerRadius(10)
+            }
+            .disabled(speakerVM.isGeneratingSummary)
+
+            // AI 伴读
+            Button(action: {
+                if subscriptionManager.isPremium {
+                    showCompanion = true
+                } else {
+                    showPaywall = true
+                }
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                    Text("AI 伴读")
+                }
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.accentColor)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.accentColor.opacity(0.1))
+                .cornerRadius(10)
+            }
         }
     }
 
