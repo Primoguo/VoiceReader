@@ -22,25 +22,37 @@ struct DocumentListView: View {
                 if documents.isEmpty {
                     emptyView
                 } else {
-                    List {
-                        ForEach(documents) { doc in
-                            DocumentRowView(
-                                document: doc,
-                                isPlaying: speakerVM.currentDocument?.id == doc.id && speakerVM.state == .playing
-                            )
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                speakerVM.loadDocument(doc)
-                                speakerVM.play()
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) { deleteDoc(doc) } label: {
-                                    Label("删除", systemImage: "trash")
-                                }
+                    ScrollView {
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12)
+                            ],
+                            spacing: 12
+                        ) {
+                            ForEach(documents) { doc in
+                                let playing = speakerVM.currentDocument?.id == doc.id && speakerVM.state == .playing
+
+                                DocumentCardView(document: doc, isPlaying: playing)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        HapticService.shared.playPause()
+                                        speakerVM.loadDocument(doc)
+                                        speakerVM.play()
+                                    }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            deleteDoc(doc)
+                                        } label: {
+                                            Label("删除", systemImage: "trash")
+                                        }
+                                    }
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
                     }
-                    .listStyle(.plain)
+                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("书库")
