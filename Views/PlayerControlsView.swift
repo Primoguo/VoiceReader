@@ -4,19 +4,31 @@ import SwiftUI
 struct PlayerControlsView: View {
     @ObservedObject var speakerVM: SpeakerViewModel
 
+    private let haptic = HapticService.shared
+
     var body: some View {
         VStack(spacing: 16) {
             // 主控制按钮
             HStack(spacing: 32) {
-                ControlButton(icon: "gobackward.15", size: .small) { speakerVM.skipBackward() }
-                ControlButton(icon: playIcon, size: .large) { speakerVM.togglePlayPause() }
-                ControlButton(icon: "goforward.30", size: .small) { speakerVM.skipForward() }
+                ControlButton(icon: "gobackward.15", size: .small) {
+                    haptic.skip()
+                    speakerVM.skipBackward()
+                }
+                ControlButton(icon: playIcon, size: .large) {
+                    haptic.playPause()
+                    speakerVM.togglePlayPause()
+                }
+                ControlButton(icon: "goforward.30", size: .small) {
+                    haptic.skip()
+                    speakerVM.skipForward()
+                }
             }
 
             // 语速快捷切换
             HStack(spacing: 12) {
                 ForEach(quickSpeeds, id: \.label) { preset in
                     Button(preset.label) {
+                        haptic.speedChange()
                         var config = speakerVM.voiceConfig
                         config.rate = preset.value
                         speakerVM.updateConfig(config)

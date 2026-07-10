@@ -25,9 +25,13 @@ struct PlayerView: View {
 
                         // 底部控制区
                         VStack(spacing: 12) {
-                            // 进度条
+                            // 进度条（自定义 + 段落指示器）
                             VStack(spacing: 6) {
-                                Slider(value: Binding(get: { speakerVM.progress }, set: { speakerVM.seekTo(progress: $0) })).tint(.accentColor)
+                                ProgressBarView(
+                                    progress: speakerVM.progress,
+                                    paragraphPositions: paragraphPositions(doc: doc),
+                                    onSeek: { speakerVM.seekTo(progress: $0) }
+                                )
                                 HStack {
                                     Text(speakerVM.currentPositionText).font(.caption).foregroundColor(.secondary)
                                     Spacer()
@@ -292,6 +296,13 @@ struct PlayerView: View {
     }
 
     // MARK: - Helpers
+
+    /// 计算段落归一化位置（用于进度条指示器）
+    private func paragraphPositions(doc: Document) -> [Double] {
+        let paragraphs = splitIntoParagraphs(doc.extractedText)
+        guard doc.totalLength > 0, !paragraphs.isEmpty else { return [] }
+        return paragraphs.map { Double($0.offset) / Double(doc.totalLength) }
+    }
 
     private func formatLen(_ len: Int) -> String {
         len >= 10000 ? String(format: "%.1f万字", Double(len) / 10000.0) : "\(len)字"
