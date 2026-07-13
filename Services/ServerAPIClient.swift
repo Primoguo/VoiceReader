@@ -8,10 +8,8 @@ final class ServerAPIClient {
 
     // MARK: - Configuration
 
-    // TODO: [待办] 替换为你的实际服务器地址
-    // 例如: https://api.knowledge.app 或 https://your-server.com/api
-    // 需要在阿里云服务器上部署中转 API 服务后填入
-    static let baseURL = "https://api.example.com/api"
+    // 服务器地址：naolizhi.cn 中转服务（DeepSeek AI + Edge TTS）
+    static let baseURL = "https://naolizhi.cn/api"
 
     private let session: URLSession
 
@@ -124,7 +122,12 @@ final class ServerAPIClient {
             throw ServerAPIError.invalidResponse
         }
 
-        // 通用提取 content 字段
+        // 通用提取 result 字段（DeepSeek 中转服务返回格式）
+        if let result = json["result"] as? String {
+            return result
+        }
+
+        // 兼容 content 字段
         if let content = json["content"] as? String {
             return content
         }
