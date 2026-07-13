@@ -4,6 +4,7 @@ import AVFoundation
 
 /// Edge TTS 引擎适配器，实现 SpeechSynthesizerProtocol
 /// 通过 naolizhi.cn 服务器中转调用微软 Edge TTS
+/// 支持段落预加载，实现无缝衔接播放
 final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
     // MARK: - Protocol Properties
 
@@ -21,7 +22,12 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
     private var segmentStartPositions: [Int] = []
     private var currentConfig: VoiceConfig = .defaultConfig
     private var synthesisTask: Task<Void, Never>?
-    private var isSynthesizing = false
+
+    /// 预加载缓存（下一段音频数据，避免段落间卡顿）
+    private var prefetchedData: (index: Int, data: Data)?
+
+    /// 段落播放完成的 continuation（实现 Task 等待播放结束）
+    private var playbackContinuation: CheckedContinuation<Void, Never>?
 
     // MARK: - SpeechSynthesizerProtocol
 
@@ -47,7 +53,7 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
         }
 
         state = .playing
-        synthesizeAndPlay(voice: voice)
+        startPlayback(voice: voice)
     }
 
     func pause() {
@@ -64,8 +70,10 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
         synthesisTask?.cancel()
         audioPlayer?.stop()
         audioPlayer = nil
+        playbackContinuation?.resume()
+        playbackContinuation = nil
+        prefetchedData = nil
         state = .idle
-        isSynthesizing = false
     }
 
     func skipForward(by seconds: TimeInterval) {
@@ -136,47 +144,65 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
         return positions
     }
 
-    private func synthesizeAndPlay(voice: String) {
-        guard !isSynthesizing else { return }
-        isSynthesizing = true
+    // MARK: - Synthesis Pipeline（预加载 + 无缝衔接）
 
-        synthesisTask = Task { [weak self] in
+    /// 主播放流水线：合成 → 播放 → 等待完成 → 下一段
+    private func startPlayback(voice: String) {
+        synthesisTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
             for index in self.currentSegmentIndex..<self.segments.count {
-                guard !Task.isCancelled else { return }
-                guard self.state == .playing else { return }
+                guard !Task.isCancelled, self.state == .playing else { break }
 
                 let segment = self.segments[index]
 
                 do {
-                    let audioData = try await self.service.synthesize(
-                        text: segment,
-                        voice: voice,
-                        rate: self.currentConfig.rate
-                    )
+                    // 使用预加载缓存或重新合成
+                    let audioData: Data
+                    if let prefetch = self.prefetchedData, prefetch.index == index {
+                        audioData = prefetch.data
+                        self.prefetchedData = nil
+                    } else {
+                        self.prefetchedData = nil
+                        audioData = try await self.service.synthesize(
+                            text: segment, voice: voice, rate: self.currentConfig.rate
+                        )
+                    }
 
-                    guard !Task.isCancelled, self.state == .playing else { return }
+                    guard !Task.isCancelled, self.state == .playing else { break }
 
-                    // 保存临时文件并播放
+                    // 写入临时文件
                     let tempURL = FileManager.default.temporaryDirectory
                         .appendingPathComponent("edgetts_\(UUID().uuidString).mp3")
                     try audioData.write(to: tempURL)
 
-                    await self.playAudio(url: tempURL, segmentIndex: index)
-                } catch {
-                    guard !Task.isCancelled else { return }
-                    await MainActor.run {
-                        self.onError?(error)
-                        self.state = .idle
+                    // 开始播放（不等待结束）
+                    self.playAudio(url: tempURL, segmentIndex: index)
+
+                    // 播放已开始，立即预加载下一段（与播放并行）
+                    if index + 1 < self.segments.count {
+                        let nextSegment = self.segments[index + 1]
+                        if let nextData = try? await self.service.synthesize(
+                            text: nextSegment, voice: voice, rate: self.currentConfig.rate
+                        ) {
+                            self.prefetchedData = (index: index + 1, data: nextData)
+                        }
                     }
+
+                    // 等待当前段落播放结束（delegate 回调 resume）
+                    await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                        self.playbackContinuation = cont
+                    }
+                } catch {
+                    guard !Task.isCancelled else { break }
+                    self.onError?(error)
+                    self.state = .idle
                     return
                 }
             }
 
-            await MainActor.run {
+            if self.state == .playing {
                 self.state = .finished
-                self.isSynthesizing = false
             }
         }
     }
@@ -216,7 +242,6 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
             let charOffset = Int(Double(segmentLength) * progress)
             let absPos = basePosition + charOffset
             self.onPositionChange?(absPos)
-            // 更新高亮范围：当前字符位置到段落末尾
             self.onRangeChange?(NSRange(location: absPos, length: max(0, segmentLength - charOffset)))
         }
     }
@@ -226,18 +251,9 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
 
 extension EdgeTTSSynthesizer: AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        guard flag else { return }
         positionTimer?.invalidate()
-
-        currentSegmentIndex += 1
-        if currentSegmentIndex < segments.count, state == .playing {
-            let voice = resolveVoice(from: currentConfig)
-            Task { @MainActor [weak self] in
-                self?.synthesizeAndPlay(voice: voice)
-            }
-        } else if currentSegmentIndex >= segments.count {
-            state = .finished
-            isSynthesizing = false
-        }
+        // 通知 Task 循环：当前段落播放结束，继续下一段
+        playbackContinuation?.resume()
+        playbackContinuation = nil
     }
 }
