@@ -68,11 +68,13 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
 
     func stop() {
         synthesisTask?.cancel()
+        prefetchTask?.cancel()
         audioPlayer?.stop()
         audioPlayer = nil
         playbackContinuation?.resume()
         playbackContinuation = nil
         prefetchedData = nil
+        prefetchTask = nil
         state = .idle
     }
 
@@ -146,6 +148,9 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
 
     // MARK: - Synthesis Pipeline（预加载 + 无缝衔接）
 
+    /// 预加载任务（后台运行，不阻塞主播放循环）
+    private var prefetchTask: Task<Void, Never>?
+
     /// 主播放流水线：合成 → 播放 → 等待完成 → 下一段
     private func startPlayback(voice: String) {
         synthesisTask = Task { @MainActor [weak self] in
@@ -171,6 +176,10 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
 
                     guard !Task.isCancelled, self.state == .playing else { break }
 
+                    // 取消上一次预加载任务
+                    self.prefetchTask?.cancel()
+                    self.prefetchTask = nil
+
                     // 写入临时文件
                     let tempURL = FileManager.default.temporaryDirectory
                         .appendingPathComponent("edgetts_\(UUID().uuidString).mp3")
@@ -179,13 +188,19 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
                     // 开始播放（不等待结束）
                     self.playAudio(url: tempURL, segmentIndex: index)
 
-                    // 播放已开始，立即预加载下一段（与播放并行）
+                    // 后台预加载下一段（不阻塞主循环）
                     if index + 1 < self.segments.count {
                         let nextSegment = self.segments[index + 1]
-                        if let nextData = try? await self.service.synthesize(
-                            text: nextSegment, voice: voice, rate: self.currentConfig.rate
-                        ) {
-                            self.prefetchedData = (index: index + 1, data: nextData)
+                        let service = self.service
+                        let rate = self.currentConfig.rate
+                        self.prefetchTask = Task { [weak self] in
+                            if let nextData = try? await service.synthesize(
+                                text: nextSegment, voice: voice, rate: rate
+                            ) {
+                                await MainActor.run {
+                                    self?.prefetchedData = (index: index + 1, data: nextData)
+                                }
+                            }
                         }
                     }
 
