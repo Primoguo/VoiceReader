@@ -63,18 +63,17 @@ final class EdgeTTSService {
     func synthesize(text: String, voice: String, rate: Float = 0.5) async throws -> Data {
         let edgeRate = convertRate(rate)
 
-        var components = URLComponents(string: baseURL)!
-        components.queryItems = [
-            URLQueryItem(name: "text", value: text),
-            URLQueryItem(name: "voice", value: voice),
-            URLQueryItem(name: "rate", value: edgeRate)
-        ]
+        // POST 请求 — 避免长文本导致 URL 超限（414 URI Too Long）
+        var request = URLRequest(url: URL(string: baseURL)!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "text": text,
+            "voice": voice,
+            "rate": edgeRate
+        ])
 
-        guard let url = components.url else {
-            throw EdgeTTSError.invalidURL
-        }
-
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw EdgeTTSError.invalidResponse
