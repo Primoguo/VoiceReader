@@ -72,16 +72,12 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
         guard let player = audioPlayer else { return }
         let newTime = min(player.currentTime + seconds, player.duration)
         player.currentTime = newTime
-        let pos = estimatePosition(from: player)
-        onPositionChange?(pos)
     }
 
     func skipBackward(by seconds: TimeInterval) {
         guard let player = audioPlayer else { return }
         let newTime = max(player.currentTime - seconds, 0)
         player.currentTime = newTime
-        let pos = estimatePosition(from: player)
-        onPositionChange?(pos)
     }
 
     // MARK: - Private
@@ -195,14 +191,15 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
             audioPlayer?.play()
 
             let basePosition = segmentStartPositions[min(segmentIndex, segmentStartPositions.count - 1)]
+            let segmentLen = segmentIndex < segments.count
+                ? (segments[segmentIndex] as NSString).length
+                : 0
+
             onPositionChange?(basePosition)
+            onRangeChange?(NSRange(location: basePosition, length: segmentLen))
 
-            if segmentIndex < segments.count {
-                let segmentLen = (segments[segmentIndex] as NSString).length
-                onRangeChange?(NSRange(location: basePosition, length: segmentLen))
-            }
-
-            startPositionTimer(basePosition: basePosition)
+            // 段落内高亮跟随：每 0.5 秒按比例更新当前位置
+            startPositionUpdateTimer(basePosition: basePosition, segmentLength: segmentLen)
         } catch {
             onError?(error)
         }
@@ -210,19 +207,18 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
 
     private var positionTimer: Timer?
 
-    private func startPositionTimer(basePosition: Int) {
+    /// 段落内定时更新高亮位置（按播放时间比例估算字符位置）
+    private func startPositionUpdateTimer(basePosition: Int, segmentLength: Int) {
         positionTimer?.invalidate()
         positionTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            guard let self, let player = self.audioPlayer else { return }
-            let pos = self.estimatePosition(from: player, basePosition: basePosition)
-            self.onPositionChange?(pos)
+            guard let self, let player = self.audioPlayer, segmentLength > 0 else { return }
+            let progress = player.duration > 0 ? player.currentTime / player.duration : 0
+            let charOffset = Int(Double(segmentLength) * progress)
+            let absPos = basePosition + charOffset
+            self.onPositionChange?(absPos)
+            // 更新高亮范围：当前字符位置到段落末尾
+            self.onRangeChange?(NSRange(location: absPos, length: max(0, segmentLength - charOffset)))
         }
-    }
-
-    private func estimatePosition(from player: AVAudioPlayer, basePosition: Int = 0) -> Int {
-        let elapsedSeconds = Int(player.currentTime)
-        let estimatedChars = elapsedSeconds * 3
-        return basePosition + estimatedChars
     }
 }
 
