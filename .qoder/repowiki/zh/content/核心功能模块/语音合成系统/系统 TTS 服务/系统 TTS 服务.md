@@ -20,11 +20,11 @@
 
 ## 更新摘要
 **所做更改**
-- 新增 SpeakerViewModel 100ms 去抖机制防止过度 UI 更新，优化高亮跟随性能
-- VoiceConfig 增强引擎支持检测逻辑，改进 iOS 版本兼容性处理
-- 完善 TTSEngine 枚举的 isSupported 属性，提供设备兼容性检查
-- 优化 SpeechService 的 iOS 版本兼容性，移除已弃用的 AVSpeechUtterance.quality 属性依赖
-- 增强 SystemVoiceManager 的 Neural TTS 音色选择逻辑
+- 增强 SystemVoiceManager 的中文 Neural TTS 音色检测逻辑，支持更广泛的中文语言代码匹配（zh、cmn、yue）
+- 添加全面的调试日志记录功能，用于中文语音发现问题的诊断和排查
+- 改进 iOS 版本兼容性，移除已弃用的 AVSpeechUtterance.quality 属性依赖，改用 identifier 字符串匹配
+- 优化语音选择算法，提供更好的中文语言支持和用户体验
+- 完善 SystemVoiceInfo 结构体，提供准确的 Neural TTS 标识和质量标签显示
 
 ## 目录
 1. [简介](#简介)
@@ -41,7 +41,7 @@
 ## 简介
 本文件为系统 TTS（文本转语音）服务的综合文档，重点围绕 SpeechService 类如何集成 iOS 系统的 AVSpeechSynthesizer，涵盖语音配置管理、播放状态控制、错误处理机制；解释与 SpeechSynthesizerProtocol 协议的实现关系；文档化所有公共接口与方法的使用方式；并包含系统语音特性、语言支持、语速调节、音调设置等配置选项的具体实现。同时提供性能优化建议与常见问题解决方案，帮助开发者快速理解与扩展系统 TTS 能力。
 
-**更新** 新增了 100ms 去抖机制优化 UI 更新性能，增强了引擎支持检测逻辑和 iOS 版本兼容性处理，改进了高亮跟随的性能表现。
+**更新** 增强了中文 Neural TTS 音色检测能力，添加了全面的调试日志功能，改进了 iOS 版本兼容性处理，移除了已弃用的 quality 属性依赖，优化了语音选择算法以提供更好的中文语言支持体验。
 
 ## 项目结构
 TTS 相关代码主要分布在 Services、Models、ViewModels、Views 四个层次：
@@ -99,8 +99,8 @@ TEE --> VC
 - [VoiceConfig.swift:1-71](file://Models/VoiceConfig.swift#L1-L71)
 - [SettingsView.swift:40-237](file://Views/SettingsView.swift#L40-L237)
 - [CosyVoiceSynthesizer.swift:1-258](file://Services/CosyVoiceSynthesizer.swift#L1-L258)
-- [SystemVoiceManager.swift:1-91](file://Services/SystemVoiceManager.swift#L1-L91)
-- [SystemVoiceSelectView.swift:1-69](file://Views/SystemVoiceSelectView.swift#L1-L69)
+- [SystemVoiceManager.swift:1-104](file://Services/SystemVoiceManager.swift#L1-L104)
+- [SystemVoiceSelectView.swift:1-274](file://Views/SystemVoiceSelectView.swift#L1-L274)
 
 **章节来源**
 - [SpeechService.swift:1-166](file://Services/SpeechService.swift#L1-L166)
@@ -109,8 +109,8 @@ TEE --> VC
 - [VoiceConfig.swift:1-71](file://Models/VoiceConfig.swift#L1-L71)
 - [SettingsView.swift:40-237](file://Views/SettingsView.swift#L40-L237)
 - [CosyVoiceSynthesizer.swift:1-258](file://Services/CosyVoiceSynthesizer.swift#L1-L258)
-- [SystemVoiceManager.swift:1-91](file://Services/SystemVoiceManager.swift#L1-L91)
-- [SystemVoiceSelectView.swift:1-69](file://Views/SystemVoiceSelectView.swift#L1-L69)
+- [SystemVoiceManager.swift:1-104](file://Services/SystemVoiceManager.swift#L1-L104)
+- [SystemVoiceSelectView.swift:1-274](file://Views/SystemVoiceSelectView.swift#L1-L274)
 
 ## 核心组件
 - SpeechService：基于 AVSpeechSynthesizer 的系统 TTS 实现，负责分块朗读、断点续读、跳转、暂停/恢复/停止、位置与范围回调、错误回调。
@@ -119,13 +119,13 @@ TEE --> VC
 - VoiceConfig：封装语速、音调、音量、语言、引擎类型、克隆/预设音色 ID 等配置项。
 - TTSEngine：新增的引擎枚举，支持 system（iOS 17+ Neural TTS）、legacySystem（传统系统 TTS）、knowledgeVoice（AI 云端）三种引擎类型。
 - PlaybackState：描述 idle、playing、paused、finished 四种播放状态。
-- SpeakerViewModel：门面层，协调 AudioSession、NowPlaying、错误处理、语言检测与引擎切换，对外暴露统一的播放控制与配置更新接口。**新增** 100ms 去抖机制优化 UI 更新性能。
+- SpeakerViewModel：门面层，协调 AudioSession、NowPlaying、错误处理、语言检测与引擎切换，对外暴露统一的播放控制与配置更新接口。
 - AudioSessionService：统一管理 AVAudioSession 的类别、模式、激活与停用，确保后台播放、蓝牙、AirPlay 可用。
 - LanguageDetector：自动检测文档主导语言，匹配系统可用语音并优选高质量音色。
 - ErrorHandler：集中记录错误与弹窗提示。
-- SystemVoiceManager：管理 iOS 17+ Neural TTS 音色选择和推荐逻辑。
+- **SystemVoiceManager**：管理 iOS 17+ Neural TTS 音色选择和推荐逻辑，提供智能的中文语音检测和兼容性处理。
 
-**更新** 新增了 100ms 去抖机制和 SystemVoiceManager，提供了更好的 UI 性能和更智能的音色选择。
+**更新** 增强了 SystemVoiceManager 的中文 Neural TTS 检测能力，添加了全面的调试日志功能和更好的 iOS 版本兼容性处理。
 
 **章节来源**
 - [SpeechService.swift:1-166](file://Services/SpeechService.swift#L1-L166)
@@ -137,7 +137,7 @@ TEE --> VC
 - [AudioSessionService.swift:1-46](file://Services/AudioSessionService.swift#L1-L46)
 - [LanguageDetector.swift:1-83](file://Services/LanguageDetector.swift#L1-L83)
 - [ErrorHandler.swift:1-53](file://Services/ErrorHandler.swift#L1-L53)
-- [SystemVoiceManager.swift:1-91](file://Services/SystemVoiceManager.swift#L1-L91)
+- [SystemVoiceManager.swift:1-104](file://Services/SystemVoiceManager.swift#L1-L104)
 
 ## 架构总览
 系统采用"协议 + 多实现"的解耦设计：
@@ -146,7 +146,7 @@ TEE --> VC
 - AudioSessionService 保证音频会话正确配置与生命周期管理。
 - LanguageDetector 在加载文档时自动匹配最佳系统语音。
 - TTSEngine 枚举提供引擎类型管理和设备兼容性检查。
-- **新增** SystemVoiceManager 提供智能的 Neural TTS 音色推荐和选择功能。
+- **SystemVoiceManager** 提供智能的 Neural TTS 音色推荐和选择功能，特别优化了中文语言支持。
 
 ```mermaid
 classDiagram
@@ -227,6 +227,13 @@ class SystemVoiceManager {
 +recommendedVoice(for) : AVSpeechSynthesisVoice?
 +isNeuralVoice(identifier) : Bool
 }
+class SystemVoiceInfo {
++id : String
++name : String
++language : String
++quality : String
++isNeural : Bool
+}
 class AudioSessionService {
 +configure()
 +activate()
@@ -248,6 +255,7 @@ SpeechService --> PlaybackState : "维护"
 CosyVoiceSynthesizer --> PlaybackState : "维护"
 VoiceConfig --> TTSEngine : "包含"
 SystemVoiceManager --> AVSpeechSynthesisVoice : "管理"
+SystemVoiceInfo --> AVSpeechSynthesisVoice : "包装"
 ```
 
 **图表来源**
@@ -256,73 +264,92 @@ SystemVoiceManager --> AVSpeechSynthesisVoice : "管理"
 - [SpeechService.swift:1-166](file://Services/SpeechService.swift#L1-L166)
 - [CosyVoiceSynthesizer.swift:1-258](file://Services/CosyVoiceSynthesizer.swift#L1-L258)
 - [SpeakerViewModel.swift:1-399](file://ViewModels/SpeakerViewModel.swift#L1-L399)
-- [SystemVoiceManager.swift:1-91](file://Services/SystemVoiceManager.swift#L1-L91)
+- [SystemVoiceManager.swift:1-104](file://Services/SystemVoiceManager.swift#L1-L104)
 - [AudioSessionService.swift:1-46](file://Services/AudioSessionService.swift#L1-L46)
 - [LanguageDetector.swift:1-83](file://Services/LanguageDetector.swift#L1-L83)
 - [PlaybackState.swift:1-9](file://Models/PlaybackState.swift#L1-L9)
 
 ## 详细组件分析
 
-### TTSEngine 引擎枚举与兼容性管理
-**更新** TTSEngine 枚举定义了三种不同的 TTS 引擎类型，并增强了设备兼容性检查：
-- `system`：iOS 17+ Neural TTS（默认），提供神经网络增强的自然音质
-- `legacySystem`：传统系统 TTS，用于兼容旧版本 iOS 设备
-- `knowledgeVoice`：AI 云端合成，支持语音克隆和高级功能
+### SystemVoiceManager 智能音色选择与管理
+**更新** SystemVoiceManager 经过全面增强，提供了更完善的 Neural TTS 音色管理功能：
 
-每个引擎都有对应的显示名称、描述信息和设备支持检查：
-- `displayName`：用户友好的引擎名称
-- `description`：详细的引擎说明
-- `isSupported`：根据 iOS 版本动态检查引擎可用性，Apple Neural TTS 需要 iOS 17+
+#### 增强的中文语音检测
+- 支持更广泛的中文语言代码匹配：`zh-`、`cmn-`、`yue-`（粤语）
+- 优先识别 Neural TTS 音色：通过 `eloquence` 和 `super-compact` 标识符判断
+- 提供按名称排序的可用中文 Neural 音色列表
+
+#### 智能语音推荐算法
+- 第一优先级：`eloquence` 系列（真正的 Neural TTS）
+- 第二优先级：`super-compact` 系列（紧凑版 Neural TTS）
+- 最后回退：任意可用音色或默认语言构造
+
+#### 改进的 iOS 版本兼容性
+- 完全移除了对已弃用 `AVSpeechUtterance.quality` 属性的依赖
+- 使用 identifier 字符串匹配替代质量属性检查
+- 在 iOS 17+ 上准确识别 Neural TTS 音色
 
 ```mermaid
 flowchart TD
-CheckVersion{"检查 iOS 版本"} --> |iOS 17+| AllSupported["所有引擎都支持"]
-CheckVersion --> |iOS < 17| FilterUnsupported["过滤不支持的引擎"]
-FilterUnsupported --> ShowLegacy["显示 legacySystem 和 knowledgeVoice"]
-AllSupported --> ShowAll["显示所有引擎选项"]
-ShowLegacy --> UserChoice["用户选择引擎"]
-ShowAll --> UserChoice
-UserChoice --> ValidateSupport{"验证引擎支持性"}
-ValidateSupport --> |支持| SwitchEngine["切换到指定引擎"]
-ValidateSupport --> |不支持| UseDefault["使用默认引擎"]
+LoadVoices["加载系统音色"] --> FilterByLang["按语言过滤<br/>支持 zh-, cmn-, yue-"]
+FilterByLang --> CheckNeural{"检查是否为 Neural TTS"}
+CheckNeural --> |eloquence/super-compact| Prioritize["优先推荐"]
+CheckNeural --> |其他| Include["包含在列表中"]
+Prioritize --> SortVoices["按名称排序"]
+Include --> SortVoices
+SortVoices --> Recommended["生成推荐列表"]
+Recommended --> UI["UI展示"]
 ```
 
 **图表来源**
-- [VoiceConfig.swift:5-41](file://Models/VoiceConfig.swift#L5-L41)
-- [SpeakerViewModel.swift:69-95](file://ViewModels/SpeakerViewModel.swift#L69-L95)
+- [SystemVoiceManager.swift:12-24](file://Services/SystemVoiceManager.swift#L12-L24)
+- [SystemVoiceManager.swift:36-57](file://Services/SystemVoiceManager.swift#L36-L57)
+
+#### SystemVoiceInfo 结构体增强
+- 提供准确的 Neural TTS 标识判断
+- 显示不同的质量标签："Neural（增强版）"、"Neural（紧凑版）"、"标准版"
+- 兼容 iOS 17+ 和旧版本的差异化处理
 
 **章节来源**
-- [VoiceConfig.swift:5-41](file://Models/VoiceConfig.swift#L5-L41)
+- [SystemVoiceManager.swift:1-104](file://Services/SystemVoiceManager.swift#L1-L104)
 
-### SpeakerViewModel 去抖机制与性能优化
-**新增** SpeakerViewModel 实现了 100ms 去抖机制来优化 UI 更新性能：
-- 使用 `highlightDebounceTimer` 定时器避免频繁的高亮更新
-- 在高亮范围变化时取消之前的定时器并设置新的 100ms 延迟更新
-- 显著减少 UI 刷新频率，提升长文本朗读时的流畅度
+### 中文语音调试日志系统
+**新增** 全面的调试日志功能，用于诊断中文语音发现和选择问题：
+
+#### 详细的调试输出
+- 打印所有中文相关音色的完整信息
+- 显示每个音色的语言代码和 Neural TTS 标识
+- 统计中文音色的总数和分布情况
+
+#### 问题诊断支持
+- 检测是否缺少中文 Neural TTS 音色
+- 提供手动下载指引和系统设置跳转
+- 帮助用户快速定位语音配置问题
 
 ```mermaid
 sequenceDiagram
-participant SS as "SpeechService"
-participant VM as "SpeakerViewModel"
-participant Timer as "去抖定时器"
-participant UI as "UI渲染"
-loop 高频范围更新
-SS->>VM : onRangeChange(range)
-VM->>Timer : invalidate() 取消之前定时器
-VM->>Timer : scheduledTimer(100ms)
+participant App as "应用启动"
+participant SVS as "SystemVoiceSelectView"
+participant VM as "SystemVoiceManager"
+participant Log as "调试日志"
+App->>SVS : 打开系统音色页面
+SVS->>SVS : loadVoices()
+SVS->>VM : 获取所有可用音色
+VM-->>SVS : 返回音色列表
+SVS->>SVS : 筛选中文相关音色
+SVS->>Log : 打印调试信息
+Log-->>SVS : 显示中文音色详情
+SVS->>SVS : 检查是否有 Neural TTS
+alt 缺少中文 Neural TTS
+SVS->>Log : 警告需要手动下载
 end
-Timer-->>VM : 100ms后触发
-VM->>VM : highlightRange = range
-VM->>UI : 批量更新UI
 ```
 
 **图表来源**
-- [SpeakerViewModel.swift:50-51](file://ViewModels/SpeakerViewModel.swift#L50-L51)
-- [SpeakerViewModel.swift:305-316](file://ViewModels/SpeakerViewModel.swift#L305-L316)
+- [SystemVoiceSelectView.swift:114-139](file://Views/SystemVoiceSelectView.swift#L114-L139)
 
 **章节来源**
-- [SpeakerViewModel.swift:50-51](file://ViewModels/SpeakerViewModel.swift#L50-L51)
-- [SpeakerViewModel.swift:305-316](file://ViewModels/SpeakerViewModel.swift#L305-L316)
+- [SystemVoiceSelectView.swift:100-143](file://Views/SystemVoiceSelectView.swift#L100-L143)
 
 ### SpeechService 与 AVSpeechSynthesizer 集成
 - 初始化与委托：创建 AVSpeechSynthesizer 实例并设置自身为代理，析构时清理代理并立即停止播放。
@@ -334,7 +361,7 @@ VM->>UI : 批量更新UI
   - skipForward/skipBackward 基于 charsPerSecond 估算跳过的字符数，停止后延迟一小段时间再重新从新位置开始朗读，避免竞态。
 - 系统语音特性：
   - 根据 VoiceConfig 设置 utterance.rate、utterance.pitchMultiplier、utterance.volume。
-  - **更新** 移除了对已弃用的 AVSpeechUtterance.quality 属性的依赖，改用条件编译支持 iOS 17+ 和旧版本的兼容性。
+  - **改进** 移除了对已弃用的 AVSpeechUtterance.quality 属性的依赖，改用条件编译支持 iOS 17+ 和旧版本的兼容性。
   - 若配置了 voiceIdentifier，则使用指定 AVSpeechSynthesisVoice(identifier:)；否则按 language 构造语音。
 - 完成与继续：
   - didFinish 回调中计算下一段起始位置，若未结束则继续调用 speak 实现无缝续读；若结束则触发 finished 状态与位置回调。
@@ -379,7 +406,6 @@ end
 - [SpeechService.swift:1-166](file://Services/SpeechService.swift#L1-L166)
 
 ### 引擎切换与验证逻辑
-**更新** SpeakerViewModel 中的 switchEngine 方法增强了引擎验证逻辑：
 - 在切换前检查目标引擎的设备支持性
 - 对于不支持的引擎，打印警告并使用默认引擎
 - 支持运行时动态切换引擎而无需重启应用
@@ -407,32 +433,6 @@ RestartPlay --> Complete
 
 **章节来源**
 - [SpeakerViewModel.swift:69-95](file://ViewModels/SpeakerViewModel.swift#L69-L95)
-
-### SystemVoiceManager 智能音色选择
-**新增** SystemVoiceManager 提供智能的 Neural TTS 音色管理功能：
-- 获取特定语言的可用 Neural 音色列表（中文、英文）
-- 根据语言代码推荐最佳音色，优先选择 Enhanced 或 Premium 质量
-- 检查指定标识符是否为 Neural 音色
-- 提供 SystemVoiceInfo 结构体用于 UI 展示
-
-```mermaid
-flowchart TD
-LoadVoices["加载系统音色"] --> FilterByLang["按语言过滤"]
-FilterByLang --> CheckQuality{"检查音质等级"}
-CheckQuality --> |Enhanced/Premium| Prioritize["优先推荐"]
-CheckQuality --> |Default| Include["包含在列表中"]
-Prioritize --> SortVoices["排序并返回"]
-Include --> SortVoices
-SortVoices --> UI["UI展示"]
-```
-
-**图表来源**
-- [SystemVoiceManager.swift:29-58](file://Services/SystemVoiceManager.swift#L29-L58)
-- [SystemVoiceSelectView.swift:65-69](file://Views/SystemVoiceSelectView.swift#L65-L69)
-
-**章节来源**
-- [SystemVoiceManager.swift:1-91](file://Services/SystemVoiceManager.swift#L1-L91)
-- [SystemVoiceSelectView.swift:1-69](file://Views/SystemVoiceSelectView.swift#L1-L69)
 
 ### SpeechSynthesizerProtocol 协议与实现关系
 - 协议职责：
@@ -479,7 +479,6 @@ CosyVoiceSynthesizer ..|> SpeechSynthesizerProtocol
 - 位置与范围：
   - onPositionChange：实时推送当前绝对位置，用于进度条与时间显示。
   - onRangeChange：推送当前朗读的 NSRange（相对全文），用于文本高亮跟随。
-  - **更新** 现在通过 100ms 去抖机制优化高亮更新的性能。
 - 错误回调：
   - onError：当引擎发生不可恢复错误时通知上层，用于降级或提示用户。
 
@@ -492,8 +491,7 @@ Valid --> |是| Chunk["计算 chunk 与 natural break"]
 Chunk --> SetRange["设置 currentRange"]
 SetRange --> Speak["调用 AVSpeechSynthesizer.speak"]
 Speak --> WillSpeak["willSpeakRangeOfSpeechString"]
-WillSpeak --> Debounce["100ms 去抖处理"]
-Debounce --> UpdatePos["onPositionChange/onRangeChange"]
+WillSpeak --> UpdatePos["onPositionChange/onRangeChange"]
 UpdatePos --> DidFinish["didFinish"]
 DidFinish --> NextCheck{"是否到末尾?"}
 NextCheck --> |是| EndFinish["更新位置为 totalLength<br/>状态=finished"]
@@ -516,7 +514,7 @@ NextCheck --> |否| Continue["继续 speak(nextPosition)"]
   - volume：音量（默认 1.0）。
   - language：语言代码（默认 zh-CN）。
   - voiceIdentifier：指定系统语音标识符（可选）。
-  - **更新** engine：引擎类型（system/knowledgeVoice/legacySystem），带有设备兼容性检查。
+  - engine：引擎类型（system/knowledgeVoice/legacySystem），带有设备兼容性检查。
   - clonedVoiceId/presetVoiceId：AI 引擎的音色标识（系统引擎不使用）。
 - 语言检测与自动匹配：
   - LanguageDetector 使用 NSLinguisticTagger 检测主导语言，映射到目标语言代码。
@@ -580,25 +578,27 @@ Fallback --> Finalize
 - VoiceSelectView：
   - 展示预设/克隆音色列表，选择后更新 VoiceConfig 并切换引擎。
   - 试听功能通过 CosyVoiceService 获取预览音频并播放。
-- **更新** SettingsView：
+- SettingsView：
   - 提供引擎选择界面，根据设备兼容性动态显示可用的引擎选项。
   - 支持实时切换引擎并立即生效。
-- **新增** SystemVoiceSelectView：
+- **SystemVoiceSelectView**：
   - 专门用于 iOS 17+ 的 Neural TTS 音色选择。
   - 区分推荐音色和全部音色，提供更好的用户体验。
+  - 包含全面的调试日志功能，帮助诊断中文语音问题。
+  - 提供详细的下载指引和系统设置跳转功能。
 
 **章节来源**
 - [PlayerControlsView.swift:1-65](file://Views/PlayerControlsView.swift#L1-L65)
 - [VoiceSelectView.swift:1-215](file://Views/VoiceSelectView.swift#L1-L215)
 - [SettingsView.swift:40-237](file://Views/SettingsView.swift#L40-L237)
-- [SystemVoiceSelectView.swift:1-69](file://Views/SystemVoiceSelectView.swift#L1-L69)
+- [SystemVoiceSelectView.swift:1-274](file://Views/SystemVoiceSelectView.swift#L1-L274)
 
 ## 依赖关系分析
 - 耦合与内聚：
   - SpeechService 仅依赖 AVFoundation 与内部模型（VoiceConfig、PlaybackState），内聚度高。
   - CosyVoiceSynthesizer 依赖 CosyVoiceService 进行云端合成。
   - SpeakerViewModel 聚合多个服务，承担编排职责，符合门面模式。
-  - **新增** SystemVoiceManager 独立管理系统音色选择逻辑。
+  - SystemVoiceManager 独立管理系统音色选择逻辑。
 - 外部依赖：
   - AVFoundation：AVSpeechSynthesizer、AVAudioSession、AVSpeechSynthesisVoice。
   - Foundation：NSLinguisticTagger、UserDefaults、JSONEncoder/Decoder。
@@ -620,6 +620,8 @@ SVM --> EH["ErrorHandler"]
 SVM --> SVMgr["SystemVoiceManager"]
 TEE["TTSEngine"] --> VC
 SVMgr --> AVSpeech["AVSpeechSynthesisVoice"]
+SVS["SystemVoiceSelectView"] --> SVMgr
+SVS --> SysVoiceInfo["SystemVoiceInfo"]
 ```
 
 **图表来源**
@@ -630,7 +632,8 @@ SVMgr --> AVSpeech["AVSpeechSynthesisVoice"]
 - [AudioSessionService.swift:1-46](file://Services/AudioSessionService.swift#L1-L46)
 - [LanguageDetector.swift:1-83](file://Services/LanguageDetector.swift#L1-L83)
 - [ErrorHandler.swift:1-53](file://Services/ErrorHandler.swift#L1-L53)
-- [SystemVoiceManager.swift:1-91](file://Services/SystemVoiceManager.swift#L1-L91)
+- [SystemVoiceManager.swift:1-104](file://Services/SystemVoiceManager.swift#L1-L104)
+- [SystemVoiceSelectView.swift:1-274](file://Views/SystemVoiceSelectView.swift#L1-L274)
 
 **章节来源**
 - [SpeechService.swift:1-166](file://Services/SpeechService.swift#L1-L166)
@@ -650,12 +653,13 @@ SVMgr --> AVSpeech["AVSpeechSynthesisVoice"]
   - 使用 spokenAudio 模式确保中断与后台行为符合预期；在多任务场景下注意与其他音频应用的焦点协商。
 - 线程与主队列：
   - 状态更新与 UI 回调均在主队列执行，避免并发问题；如需批量更新，可合并回调减少 UI 刷新频率。
-- **新增** 去抖机制优化：
+- 去抖机制优化：
   - 100ms 去抖机制有效减少了高亮更新的频率，显著提升长文本朗读时的 UI 性能。
-- **新增** 引擎切换优化：
+- 引擎切换优化：
   - 引擎切换时使用异步操作避免阻塞主线程，切换完成后自动恢复播放状态。
-
-[本节为通用指导，不直接分析具体文件]
+- **语音检测性能优化**：
+  - SystemVoiceManager 使用高效的过滤器和排序算法，避免重复计算。
+  - 中文语音检测支持多种语言代码格式，提高兼容性。
 
 ## 故障排查指南
 - 无法后台播放或锁屏控制无效：
@@ -668,12 +672,17 @@ SVMgr --> AVSpeech["AVSpeechSynthesisVoice"]
   - 检查 charsPerSecond 与实际语速是否匹配；必要时调整估算系数或引入更精确的时间追踪。
 - 错误处理与降级：
   - 观察 onError 回调是否触发；AI 引擎错误时应自动降级到系统 TTS，确认配置已保存且绑定已重建。
-- **新增** 引擎兼容性问题：
+- 引擎兼容性问题：
   - 检查 TTSEngine.isSupported 返回值，确保在不支持的 iOS 版本上不会尝试使用 Neural TTS。
   - 如果引擎切换失败，查看控制台日志中的警告信息。
-- **新增** UI 性能问题：
-  - 如果高亮更新仍然卡顿，检查 100ms 去抖机制是否正常工作。
-  - 确认 highlightDebounceTimer 没有被意外释放或重复创建。
+- **中文语音检测问题**：
+  - 使用 SystemVoiceSelectView 的调试日志功能，查看完整的中文语音列表和 Neural TTS 标识。
+  - 检查控制台输出的"中文音色调试信息"，确认是否检测到预期的语音。
+  - 如果没有检测到中文 Neural TTS，按照页面提示前往系统设置下载相应语音包。
+- **iOS 版本兼容性问题**：
+  - 确认代码已移除对已弃用的 AVSpeechUtterance.quality 属性的依赖。
+  - 检查 SystemVoiceInfo 是否正确识别 Neural TTS 音色，使用 identifier 字符串匹配而非质量属性。
+  - 在 iOS 17+ 设备上验证 Neural TTS 功能是否正常工作。
 
 **章节来源**
 - [AudioSessionService.swift:14-44](file://Services/AudioSessionService.swift#L14-L44)
@@ -682,13 +691,11 @@ SVMgr --> AVSpeech["AVSpeechSynthesisVoice"]
 - [SpeechService.swift:103-125](file://Services/SpeechService.swift#L103-L125)
 - [SpeakerViewModel.swift:318-332](file://ViewModels/SpeakerViewModel.swift#L318-L332)
 - [VoiceConfig.swift:26-41](file://Models/VoiceConfig.swift#L26-L41)
-- [SpeakerViewModel.swift:50-51](file://ViewModels/SpeakerViewModel.swift#L50-L51)
-- [SpeakerViewModel.swift:305-316](file://ViewModels/SpeakerViewModel.swift#L305-L316)
+- [SystemVoiceSelectView.swift:114-139](file://Views/SystemVoiceSelectView.swift#L114-L139)
+- [SystemVoiceManager.swift:83-102](file://Services/SystemVoiceManager.swift#L83-L102)
 
 ## 结论
-SpeechService 通过简洁的分块朗读与断点续读机制，稳定地集成了 iOS 系统 AVSpeechSynthesizer，配合 SpeechSynthesizerProtocol 实现了引擎抽象与多引擎切换。**更新** 新增的 100ms 去抖机制显著提升了 UI 更新性能，优化的 TTSEngine 枚举和 legacySystem 引擎选项提供了更好的向后兼容性，改进了 iOS 版本兼容性处理，移除了已弃用的 API 调用。SpeakerViewModel 作为门面层，统一管理播放、配置、远程控制与错误降级，提升了整体可维护性与可扩展性。SystemVoiceManager 的智能音色选择功能为用户提供了更好的体验。通过合理的语言检测与系统语音优选策略，系统在多语言环境下具备良好的用户体验。建议在后续迭代中引入更精确的时间轴与性能监控，进一步优化跳转与高亮同步体验。
-
-[本节为总结，不直接分析具体文件]
+SpeechService 通过简洁的分块朗读与断点续读机制，稳定地集成了 iOS 系统 AVSpeechSynthesizer，配合 SpeechSynthesizerProtocol 实现了引擎抽象与多引擎切换。**更新** 增强的 SystemVoiceManager 提供了更完善的中文 Neural TTS 音色检测和管理功能，添加了全面的调试日志系统，改进了 iOS 版本兼容性处理，移除了已弃用的 quality 属性依赖。SystemVoiceSelectView 的调试功能为用户和开发者提供了强大的问题诊断工具。通过优化的语音选择算法和广泛的中文语言代码支持，系统在多语言环境下具备更好的用户体验。建议在后续迭代中引入更精确的时间轴与性能监控，进一步优化跳转与高亮同步体验。
 
 ## 附录：公共接口与使用方式
 
@@ -710,10 +717,10 @@ SpeechService 通过简洁的分块朗读与断点续读机制，稳定地集成
 - [SpeechSynthesizerProtocol.swift:1-20](file://Services/SpeechSynthesizerProtocol.swift#L1-L20)
 
 ### TTSEngine 引擎类型
-**更新** 支持的引擎类型：
-- `system`：Apple Neural TTS（iOS 17+），提供神经网络增强的自然音质
-- `legacySystem`：传统系统 TTS，兼容旧版本 iOS
-- `knowledgeVoice`：Knowledge Voice（AI 云端），支持语音克隆和高级功能
+- 支持的引擎类型：
+  - `system`：Apple Neural TTS（iOS 17+），提供神经网络增强的自然音质
+  - `legacySystem`：传统系统 TTS，兼容旧版本 iOS
+  - `knowledgeVoice`：Knowledge Voice（AI 云端），支持语音克隆和高级功能
 
 每个引擎的属性：
 - displayName：用户友好的显示名称
@@ -723,57 +730,7 @@ SpeechService 通过简洁的分块朗读与断点续读机制，稳定地集成
 **章节来源**
 - [VoiceConfig.swift:5-41](file://Models/VoiceConfig.swift#L5-L41)
 
-### SpeakerViewModel 去抖机制
-**新增** 100ms 去抖机制的实现细节：
-- 使用 `highlightDebounceTimer` 定时器管理高亮更新
-- 每次收到 onRangeChange 回调时先取消之前的定时器
-- 设置新的 100ms 延迟定时器来更新 UI
-- 有效减少高频 UI 更新带来的性能开销
-
-```swift
-// 去抖机制核心实现
-synthesizer.onRangeChange = { [weak self] range in
-    Task { @MainActor in
-        guard let self else { return }
-        // 取消之前的定时器
-        self.highlightDebounceTimer?.invalidate()
-        // 设置新的防抖定时器（100ms 后更新 UI）
-        self.highlightDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { _ in
-            self.highlightRange = range
-        }
-    }
-}
-```
-
-**章节来源**
-- [SpeakerViewModel.swift:50-51](file://ViewModels/SpeakerViewModel.swift#L50-L51)
-- [SpeakerViewModel.swift:305-316](file://ViewModels/SpeakerViewModel.swift#L305-L316)
-
-### SpeechService 使用要点
-- 初始化后无需额外配置，直接调用 speak 即可开始朗读。
-- 通过 onPositionChange/onRangeChange 驱动 UI 进度与高亮。
-- 使用 pause/resume/stop 控制播放生命周期。
-- skipForward/skipBackward 基于字符估算进行跳转，适合长文本导航。
-- **更新** 自动处理 iOS 版本兼容性，无需手动检查系统版本。
-
-**章节来源**
-- [SpeechService.swift:30-125](file://Services/SpeechService.swift#L30-L125)
-- [SpeechService.swift:129-143](file://Services/SpeechService.swift#L129-L143)
-
-### VoiceConfig 配置项说明
-- rate：语速（示例默认 0.5，常用档位见 presets）
-- pitchMultiplier：音调倍数（默认 1.0）
-- volume：音量（默认 1.0）
-- language：语言代码（默认 zh-CN）
-- voiceIdentifier：指定系统语音标识符（可选）
-- **更新** engine：引擎类型（system/knowledgeVoice/legacySystem），带有设备兼容性检查
-- clonedVoiceId/presetVoiceId：AI 引擎的音色标识（系统引擎不使用）
-
-**章节来源**
-- [VoiceConfig.swift:43-71](file://Models/VoiceConfig.swift#L43-L71)
-
 ### SystemVoiceManager 使用方法
-**新增** 智能音色管理功能：
 - 获取特定语言的可用 Neural 音色列表
 - 根据语言代码推荐最佳音色
 - 检查指定标识符是否为 Neural 音色
@@ -788,7 +745,40 @@ let isNeural = manager.isNeuralVoice(identifier: "some-identifier")
 ```
 
 **章节来源**
-- [SystemVoiceManager.swift:1-91](file://Services/SystemVoiceManager.swift#L1-L91)
+- [SystemVoiceManager.swift:1-104](file://Services/SystemVoiceManager.swift#L1-L104)
+
+### SystemVoiceInfo 结构体
+- id：语音的唯一标识符
+- name：语音的显示名称
+- language：语言代码
+- quality：音质描述（"Neural（增强版）"、"Neural（紧凑版）"、"标准版"）
+- isNeural：是否为 Neural TTS 音色
+
+**章节来源**
+- [SystemVoiceManager.swift:70-104](file://Services/SystemVoiceManager.swift#L70-L104)
+
+### SpeechService 使用要点
+- 初始化后无需额外配置，直接调用 speak 即可开始朗读。
+- 通过 onPositionChange/onRangeChange 驱动 UI 进度与高亮。
+- 使用 pause/resume/stop 控制播放生命周期。
+- skipForward/skipBackward 基于字符估算进行跳转，适合长文本导航。
+- 自动处理 iOS 版本兼容性，无需手动检查系统版本。
+
+**章节来源**
+- [SpeechService.swift:30-125](file://Services/SpeechService.swift#L30-L125)
+- [SpeechService.swift:129-143](file://Services/SpeechService.swift#L129-L143)
+
+### VoiceConfig 配置项说明
+- rate：语速（示例默认 0.5，常用档位见 presets）
+- pitchMultiplier：音调倍数（默认 1.0）
+- volume：音量（默认 1.0）
+- language：语言代码（默认 zh-CN）
+- voiceIdentifier：指定系统语音标识符（可选）
+- engine：引擎类型（system/knowledgeVoice/legacySystem），带有设备兼容性检查
+- clonedVoiceId/presetVoiceId：AI 引擎的音色标识（系统引擎不使用）
+
+**章节来源**
+- [VoiceConfig.swift:43-71](file://Models/VoiceConfig.swift#L43-L71)
 
 ### SpeakerViewModel 典型用法
 - 播放控制
@@ -796,13 +786,21 @@ let isNeural = manager.isNeuralVoice(identifier: "some-identifier")
   - skipForward/skipBackward/seekTo(progress)
 - 配置管理
   - updateConfig(config)：即时生效，正在播放时自动重启引擎
-  - **更新** switchEngine(to engine)：运行时切换引擎并保存配置，支持设备兼容性检查
+  - switchEngine(to engine)：运行时切换引擎并保存配置，支持设备兼容性检查
 - 事件绑定
   - setupBindings 中订阅 onPositionChange/onRangeChange/onError，并同步到 @Published 属性供 UI 使用
-  - **新增** 100ms 去抖机制优化高亮更新性能
 
 **章节来源**
 - [SpeakerViewModel.swift:134-196](file://ViewModels/SpeakerViewModel.swift#L134-L196)
 - [SpeakerViewModel.swift:69-95](file://ViewModels/SpeakerViewModel.swift#L69-L95)
 - [SpeakerViewModel.swift:296-351](file://ViewModels/SpeakerViewModel.swift#L296-L351)
-- [SpeakerViewModel.swift:305-316](file://ViewModels/SpeakerViewModel.swift#L305-L316)
+
+### SystemVoiceSelectView 调试功能
+- 全面的中文语音调试日志输出
+- 详细的语音信息展示（语言代码、Neural TTS 标识）
+- 自动检测中文 Neural TTS 可用性
+- 提供下载指引和系统设置跳转
+
+**章节来源**
+- [SystemVoiceSelectView.swift:100-143](file://Views/SystemVoiceSelectView.swift#L100-L143)
+- [SystemVoiceSelectView.swift:229-272](file://Views/SystemVoiceSelectView.swift#L229-L272)

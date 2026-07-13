@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: models
+title: Knowledge 应用数据模型层
+scope:
+    - Models/
+source_files: []
+depends_on: []
+related_to:
+    - path: services
+    - path: ui/document_library
+    - path: ui/player_controls

@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: ui/paywall
+title: 付费墙订阅界面
+scope:
+    - Views/PaywallView.swift
+source_files: []
+depends_on: []
+related_to:
+    - path: services/subscription_manager

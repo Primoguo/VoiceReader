@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: services/subscription_manager
+title: 订阅与内购状态管理
+scope:
+    - Services/SubscriptionManager.swift
+source_files: []
+depends_on: []
+related_to:
+    - path: ui/paywall

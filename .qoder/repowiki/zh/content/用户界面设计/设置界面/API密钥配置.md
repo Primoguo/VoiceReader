@@ -2,13 +2,22 @@
 
 <cite>
 **本文引用的文件**   
-- [APIKeyConfigView.swift](file://Views/APIKeyConfigView.swift)
+- [SubscriptionManager.swift](file://Services/SubscriptionManager.swift)
+- [ServerAPIClient.swift](file://Services/ServerAPIClient.swift)
 - [AISummaryService.swift](file://Services/AISummaryService.swift)
 - [CosyVoiceService.swift](file://Services/CosyVoiceService.swift)
-- [ErrorHandler.swift](file://Services/ErrorHandler.swift)
-- [ClonedVoice.swift](file://Models/ClonedVoice.swift)
 - [SettingsView.swift](file://Views/SettingsView.swift)
+- [PaywallView.swift](file://Views/PaywallView.swift)
 </cite>
+
+## 更新摘要
+**变更内容**   
+- 完全移除了客户端侧 API 密钥配置功能（APIKeyConfigView 及相关组件已删除）
+- 所有 AI 功能改为通过订阅制服务器中转访问
+- API 密钥仅存储在服务器端，不再在客户端存储或配置
+- 引入完整的订阅管理系统控制功能访问权限
+- 简化了服务层架构，统一通过 ServerAPIClient 进行通信
+- 新增付费墙界面和订阅状态管理
 
 ## 目录
 1. [简介](#简介)
@@ -20,291 +29,347 @@
 7. [性能与安全考量](#性能与安全考量)
 8. [故障排查指南](#故障排查指南)
 9. [结论](#结论)
-10. [附录：集成新服务配置界面指南](#附录集成新服务配置界面指南)
+10. [附录：订阅制服务集成指南](#附录订阅制服务集成指南)
 
 ## 简介
-本文件围绕“API密钥配置界面”展开，聚焦于阿里云 DashScope API Key 的输入、验证与存储机制，并说明当前实现的安全策略与隐私保护措施。文档同时覆盖错误处理逻辑、密钥格式校验现状、导入导出与批量配置的扩展建议，以及如何在代码中集成新的API服务配置界面。
+本文件围绕"订阅制服务器中转架构"展开，说明客户端如何通过订阅管理访问 AI 服务，以及 API 密钥的安全存储策略。由于客户端侧 API 密钥配置功能已被完全移除，所有 AI 请求现在通过统一的服务器中转层处理，确保敏感信息的安全性。文档涵盖订阅状态管理、服务器通信机制、错误处理逻辑，以及新的安全最佳实践。
 
 ## 项目结构
-与API密钥配置相关的代码主要分布在以下位置：
-- 视图层：APIKeyConfigView（配置界面）
-- 服务层：AISummaryService、CosyVoiceService（读取并使用API Key）
-- 模型与持久化：ClonedVoice/VoiceStore（用于音色相关配置，非密钥）
-- 错误处理：ErrorHandler（统一错误提示）
-- 设置入口：SettingsView（可导航到API Key配置）
+与订阅制服务器中转相关的代码主要分布在以下位置：
+- 订阅管理：SubscriptionManager（应用内购买和订阅状态管理）
+- 服务器通信：ServerAPIClient（统一的 API 客户端，处理所有网络请求）
+- 服务层：AISummaryService、CosyVoiceService（通过服务器中转调用 AI 服务）
+- 设置入口：SettingsView（Premium 功能入口和订阅状态显示）
+- 付费墙：PaywallView（订阅购买界面）
 
 ```mermaid
 graph TB
-UI_API["APIKeyConfigView<br/>输入与保存"] --> UD["UserDefaults<br/>键: dashscope_api_key"]
-UI_Settings["SettingsView<br/>设置入口"] --> UI_API
-Svc_AISummary["AISummaryService<br/>读取API Key并调用文本生成"] --> UD
-Svc_CosyVoice["CosyVoiceService<br/>读取API Key并调用TTS/克隆"] --> UD
-ErrHandler["ErrorHandler<br/>统一错误提示"] --> UI_API
+UI_Settings["SettingsView<br/>Premium 功能入口"] --> SubMgr["SubscriptionManager<br/>订阅状态管理"]
+SubMgr --> ServerClient["ServerAPIClient<br/>服务器通信"]
+ServerClient --> AISvc["AISummaryService<br/>AI 总结服务"]
+ServerClient --> CosySvc["CosyVoiceService<br/>语音合成服务"]
+AISvc --> ServerClient
+CosySvc --> ServerClient
+ServerClient --> Server["中转服务器<br/>API Key 存储"]
+UI_Paywall["PaywallView<br/>付费墙界面"] --> SubMgr
 ```
 
-图示来源
-- [APIKeyConfigView.swift:10-65](file://Views/APIKeyConfigView.swift#L10-L65)
-- [AISummaryService.swift:12-16](file://Services/AISummaryService.swift#L12-L16)
-- [CosyVoiceService.swift:14-17](file://Services/CosyVoiceService.swift#L14-L17)
-- [SettingsView.swift:19-141](file://Views/SettingsView.swift#L19-L141)
+**图示来源**
+- [SettingsView.swift:44-82](file://Views/SettingsView.swift#L44-L82)
+- [SubscriptionManager.swift:8-39](file://Services/SubscriptionManager.swift#L8-L39)
+- [ServerAPIClient.swift:6-23](file://Services/ServerAPIClient.swift#L6-L23)
+- [AISummaryService.swift:6-11](file://Services/AISummaryService.swift#L6-L11)
+- [CosyVoiceService.swift:7-12](file://Services/CosyVoiceService.swift#L7-L12)
+- [PaywallView.swift:6-11](file://Views/PaywallView.swift#L6-L11)
 
-章节来源
-- [APIKeyConfigView.swift:1-71](file://Views/APIKeyConfigView.swift#L1-L71)
-- [AISummaryService.swift:1-180](file://Services/AISummaryService.swift#L1-L180)
-- [CosyVoiceService.swift:1-219](file://Services/CosyVoiceService.swift#L1-L219)
-- [SettingsView.swift:1-194](file://Views/SettingsView.swift#L1-L194)
+**章节来源**
+- [SubscriptionManager.swift:1-127](file://Services/SubscriptionManager.swift#L1-L127)
+- [ServerAPIClient.swift:1-203](file://Services/ServerAPIClient.swift#L1-L203)
+- [AISummaryService.swift:1-90](file://Services/AISummaryService.swift#L1-L90)
+- [CosyVoiceService.swift:1-104](file://Services/CosyVoiceService.swift#L1-L104)
+- [SettingsView.swift:1-321](file://Views/SettingsView.swift#L1-L321)
+- [PaywallView.swift:1-181](file://Views/PaywallView.swift#L1-L181)
 
 ## 核心组件
-- APIKeyConfigView：提供安全输入框、保存按钮、取消操作、帮助信息；从UserDefaults加载已有值；保存时进行空白修剪后写入。
-- AISummaryService：构造请求头Authorization为Bearer + apiKey；若未配置或无效返回特定错误。
-- CosyVoiceService：同样从UserDefaults读取apiKey，并在TTS与语音克隆接口中使用；对401/403状态码映射为无效密钥错误。
-- ErrorHandler：集中展示错误弹窗与日志输出。
-- SettingsView：作为设置页入口，可导航至API Key配置页面。
+- SubscriptionManager：管理 Premium 订阅状态，支持产品加载、购买、恢复购买等功能，使用 StoreKit 2 实现。
+- ServerAPIClient：统一的服务器通信客户端，处理所有 AI 服务的网络请求，包含错误处理和响应验证。
+- AISummaryService：AI 文档总结服务，通过服务器中转调用通义千问，不再直接访问 DashScope API。
+- CosyVoiceService：CosyVoice 语音合成服务，通过服务器中转调用阿里云 DashScope，支持 TTS 和语音克隆。
+- SettingsView：设置页面，显示 Premium 订阅状态和功能入口。
+- PaywallView：付费墙界面，提供订阅购买功能和功能展示。
 
-章节来源
-- [APIKeyConfigView.swift:10-65](file://Views/APIKeyConfigView.swift#L10-L65)
-- [AISummaryService.swift:25-34](file://Services/AISummaryService.swift#L25-L34)
-- [CosyVoiceService.swift:27-36](file://Services/CosyVoiceService.swift#L27-L36)
-- [ErrorHandler.swift:20-35](file://Services/ErrorHandler.swift#L20-L35)
-- [SettingsView.swift:19-141](file://Views/SettingsView.swift#L19-L141)
+**章节来源**
+- [SubscriptionManager.swift:8-39](file://Services/SubscriptionManager.swift#L8-L39)
+- [ServerAPIClient.swift:6-23](file://Services/ServerAPIClient.swift#L6-L23)
+- [AISummaryService.swift:6-11](file://Services/AISummaryService.swift#L6-L11)
+- [CosyVoiceService.swift:7-12](file://Services/CosyVoiceService.swift#L7-L12)
+- [SettingsView.swift:44-82](file://Views/SettingsView.swift#L44-L82)
+- [PaywallView.swift:6-11](file://Views/PaywallView.swift#L6-L11)
 
 ## 架构总览
-下图展示了用户从设置进入API Key配置、保存后各服务如何读取并使用该密钥的整体流程。
+下图展示了用户从设置进入 Premium 功能、订阅后通过服务器中转访问 AI 服务的完整流程。
 
 ```mermaid
 sequenceDiagram
 participant U as "用户"
 participant SV as "SettingsView"
-participant AV as "APIKeyConfigView"
-participant UD as "UserDefaults"
-participant AIS as "AISummaryService"
+participant PW as "PaywallView"
+participant SM as "SubscriptionManager"
+participant SA as "AISummaryService"
 participant CV as "CosyVoiceService"
+participant SC as "ServerAPIClient"
+participant S as "中转服务器"
 U->>SV : 打开设置
-SV-->>AV : 导航到API Key配置
-AV->>UD : 读取已保存的dashscope_api_key
-U->>AV : 输入并点击保存
-AV->>UD : 写入dashscope_api_key(去空白)
-Note over AV,UD : 无前端格式校验，仅做空白修剪
-U->>AIS : 触发AI总结
-AIS->>UD : 读取dashscope_api_key
-AIS->>AIS : 检查是否为空
-AIS-->>U : 缺失则抛出missingAPIKey错误
-U->>CV : 触发TTS/克隆
-CV->>UD : 读取dashscope_api_key
-CV->>CV : 检查是否为空
-CV-->>U : 缺失则抛出missingAPIKey错误
+SV->>SM : 检查订阅状态
+SM-->>SV : 返回 isPremium 状态
+alt 未订阅
+SV-->>U : 显示 Premium 功能入口
+U->>SV : 点击解锁 Premium
+SV->>PW : 打开付费墙
+PW->>SM : 启动购买流程
+SM-->>U : 完成购买并激活
+else 已订阅
+SV-->>U : 显示 Premium 已激活
+end
+U->>SA : 触发 AI 总结
+SA->>SC : requestSummary(text : )
+SC->>S : POST /summary
+S-->>SC : 返回摘要结果
+SC-->>SA : 解析响应
+SA-->>U : 返回 SummaryResult
+U->>CV : 触发 TTS 合成
+CV->>SC : requestTTS(text : , voiceId : , rate : )
+SC->>S : POST /tts
+S-->>SC : 返回音频数据
+SC-->>CV : 返回 Data
+CV-->>U : 播放音频
 ```
 
-图示来源
-- [APIKeyConfigView.swift:55-65](file://Views/APIKeyConfigView.swift#L55-L65)
-- [AISummaryService.swift:12-34](file://Services/AISummaryService.swift#L12-L34)
-- [CosyVoiceService.swift:14-36](file://Services/CosyVoiceService.swift#L14-L36)
+**图示来源**
+- [SettingsView.swift:44-82](file://Views/SettingsView.swift#L44-L82)
+- [PaywallView.swift:160-175](file://Views/PaywallView.swift#L160-L175)
+- [SubscriptionManager.swift:56-69](file://Services/SubscriptionManager.swift#L56-L69)
+- [AISummaryService.swift:20-23](file://Services/AISummaryService.swift#L20-L23)
+- [CosyVoiceService.swift:22-24](file://Services/CosyVoiceService.swift#L22-L24)
+- [ServerAPIClient.swift:27-33](file://Services/ServerAPIClient.swift#L27-L33)
 
 ## 详细组件分析
 
-### APIKeyConfigView 界面与交互
-- 输入控件：使用安全输入框，避免明文显示。
-- 保存逻辑：对输入进行空白字符修剪后写入UserDefaults，键名为dashscope_api_key。
-- 取消操作：直接关闭页面。
-- 初始化：页面出现时从UserDefaults读取已有值回填。
-- 帮助信息：提供获取DashScope API Key的步骤说明。
+### 订阅管理系统
+SubscriptionManager 负责管理应用的 Premium 订阅状态，使用 StoreKit 2 实现完整的订阅生命周期管理。
+
+**主要功能：**
+- 订阅状态检查：监听当前 entitlements，验证交易有效性
+- 产品加载：从 App Store Connect 获取可用订阅产品
+- 购买流程：处理用户购买请求，包括验证和完成交易
+- 购买恢复：支持跨设备恢复购买记录
 
 ```mermaid
 flowchart TD
-Start(["页面出现"]) --> Load["从UserDefaults读取dashscope_api_key"]
-Load --> Input["用户输入API Key"]
-Input --> SaveClick{"点击保存?"}
-SaveClick --> |是| Trim["去除首尾空白字符"]
-Trim --> Persist["写入UserDefaults(dashscope_api_key)"]
-Persist --> Close["关闭页面"]
-SaveClick --> |否| Cancel["点击取消"]
-Cancel --> Close
+Start(["应用启动"]) --> LoadProducts["加载订阅产品"]
+LoadProducts --> CheckStatus["检查订阅状态"]
+CheckStatus --> IsPremium{"是否已订阅?"}
+IsPremium --> |是| ShowActivated["显示 Premium 已激活"]
+IsPremium --> |否| ShowPaywall["显示付费墙"]
+ShowPaywall --> PurchaseClick{"用户点击购买?"}
+PurchaseClick --> |是| PurchaseFlow["启动购买流程"]
+PurchaseFlow --> Verify["验证交易"]
+Verify --> Complete["完成交易"]
+Complete --> UpdateStatus["更新订阅状态"]
+UpdateStatus --> ShowActivated
+PurchaseClick --> |否| Cancel["取消购买"]
+Cancel --> ShowPaywall
 ```
 
-图示来源
-- [APIKeyConfigView.swift:55-65](file://Views/APIKeyConfigView.swift#L55-L65)
+**图示来源**
+- [SubscriptionManager.swift:34-39](file://Services/SubscriptionManager.swift#L34-L39)
+- [SubscriptionManager.swift:56-69](file://Services/SubscriptionManager.swift#L56-L69)
+- [SubscriptionManager.swift:71-95](file://Services/SubscriptionManager.swift#L71-95)
 
-章节来源
-- [APIKeyConfigView.swift:10-65](file://Views/APIKeyConfigView.swift#L10-L65)
+**章节来源**
+- [SubscriptionManager.swift:8-39](file://Services/SubscriptionManager.swift#L8-L39)
+- [SubscriptionManager.swift:56-69](file://Services/SubscriptionManager.swift#L56-L69)
+- [SubscriptionManager.swift:71-95](file://Services/SubscriptionManager.swift#L71-95)
 
-### 密钥读取与服务调用
-- AISummaryService：在构造时从UserDefaults读取apiKey；发起请求时将Authorization设置为Bearer + apiKey；当HTTP状态为401/403时抛出invalidAPIKey错误；未配置时抛出missingAPIKey错误。
-- CosyVoiceService：与AISummaryService一致，负责TTS合成与语音克隆，同样基于Bearer鉴权，并对401/403映射为invalidAPIKey错误。
+### 服务器 API 客户端
+ServerAPIClient 是所有 AI 服务请求的统一入口，负责与中转服务器通信，处理网络请求、响应验证和错误处理。
+
+**核心特性：**
+- 统一的基础 URL 配置，便于部署环境切换
+- 自动的请求超时和资源超时管理
+- 标准化的 JSON 请求体构建
+- 灵活的响应解析，支持多种数据格式
+- 全面的错误分类和处理
 
 ```mermaid
 classDiagram
+class ServerAPIClient {
++baseURL : String
++requestSummary(text : ) String
++requestCompanion(question : , context : , history : ) String
++requestTTS(text : , voiceId : , rate : ) Data
++requestVoiceClone(audioData : , voiceName : ) String
++buildRequest(endpoint : , body : ) URLRequest
++validateResponse(response : , data : ) void
+}
 class AISummaryService {
--apiKey : String
-+generateSummary(for : text,maxLength : ) SummaryResult
--callAPI(prompt : ) String
+-apiClient : ServerAPIClient
++generateSummary(for : , maxLength : ) SummaryResult
 }
 class CosyVoiceService {
--apiKey : String
-+synthesize(text,voiceId,rate : ) Data
-+cloneVoice(audioData,voiceName : ) String
+-apiClient : ServerAPIClient
++synthesize(text : , voiceId : , rate : ) Data
++cloneVoice(audioData : , voiceName : ) String
 }
-class UserDefaults {
-+string(forKey : ) String?
-+set(_ : forKey : )
-}
-AISummaryService --> UserDefaults : "读取/写入dashscope_api_key"
-CosyVoiceService --> UserDefaults : "读取dashscope_api_key"
+ServerAPIClient <|-- AISummaryService
+ServerAPIClient <|-- CosyVoiceService
 ```
 
-图示来源
-- [AISummaryService.swift:12-34](file://Services/AISummaryService.swift#L12-L34)
-- [CosyVoiceService.swift:14-36](file://Services/CosyVoiceService.swift#L14-L36)
+**图示来源**
+- [ServerAPIClient.swift:6-23](file://Services/ServerAPIClient.swift#L6-L23)
+- [AISummaryService.swift:6-11](file://Services/AISummaryService.swift#L6-L11)
+- [CosyVoiceService.swift:7-12](file://Services/CosyVoiceService.swift#L7-L12)
 
-章节来源
-- [AISummaryService.swift:25-34](file://Services/AISummaryService.swift#L25-L34)
-- [CosyVoiceService.swift:27-36](file://Services/CosyVoiceService.swift#L27-L36)
+**章节来源**
+- [ServerAPIClient.swift:6-23](file://Services/ServerAPIClient.swift#L6-L23)
+- [ServerAPIClient.swift:27-33](file://Services/ServerAPIClient.swift#L27-L33)
+- [ServerAPIClient.swift:49-88](file://Services/ServerAPIClient.swift#L49-L88)
+- [ServerAPIClient.swift:101-110](file://Services/ServerAPIClient.swift#L101-L110)
+- [ServerAPIClient.swift:161-173](file://Services/ServerAPIClient.swift#L161-L173)
 
-### 错误处理与用户反馈
-- AIServiceError与CosyVoiceError均定义了missingAPIKey与invalidAPIKey等错误类型，并提供本地化描述。
-- ErrorHandler提供统一的错误弹窗与日志输出，便于UI层集中展示错误。
+### 服务层重构
+AISummaryService 和 CosyVoiceService 经过重构，移除了直接的 API Key 管理和 UserDefaults 依赖，改为通过 ServerAPIClient 进行所有网络请求。
 
-```mermaid
-sequenceDiagram
-participant UI as "调用方"
-participant Svc as "AISummaryService/CosyVoiceService"
-participant EH as "ErrorHandler"
-UI->>Svc : 调用需要API Key的功能
-alt 未配置API Key
-Svc-->>UI : 抛出missingAPIKey
-UI->>EH : handle(error)
-EH-->>UI : 弹出提示“请先在设置中配置阿里云 API Key”
-else 401/403
-Svc-->>UI : 抛出invalidAPIKey
-UI->>EH : handle(error)
-EH-->>UI : 弹出提示“API Key 无效，请检查后重试”
-end
-```
+**AISummaryService 变更：**
+- 移除了 apiKey 属性和相关初始化逻辑
+- 直接使用 ServerAPIClient.shared 进行请求
+- 简化了错误处理，专注于业务逻辑
 
-图示来源
-- [AISummaryService.swift:158-179](file://Services/AISummaryService.swift#L158-L179)
-- [CosyVoiceService.swift:191-218](file://Services/CosyVoiceService.swift#L191-L218)
-- [ErrorHandler.swift:20-35](file://Services/ErrorHandler.swift#L20-L35)
+**CosyVoiceService 变更：**
+- 移除了 apiKey 属性和相关鉴权逻辑
+- 通过 ServerAPIClient 处理 TTS 和语音克隆请求
+- 保留了分段合成的辅助功能
 
-章节来源
-- [AISummaryService.swift:158-179](file://Services/AISummaryService.swift#L158-L179)
-- [CosyVoiceService.swift:191-218](file://Services/CosyVoiceService.swift#L191-L218)
-- [ErrorHandler.swift:20-35](file://Services/ErrorHandler.swift#L20-L35)
+**章节来源**
+- [AISummaryService.swift:6-11](file://Services/AISummaryService.swift#L6-L11)
+- [AISummaryService.swift:20-23](file://Services/AISummaryService.swift#L20-L23)
+- [CosyVoiceService.swift:7-12](file://Services/CosyVoiceService.swift#L7-L12)
+- [CosyVoiceService.swift:22-24](file://Services/CosyVoiceService.swift#L22-L24)
 
-### 密钥格式验证规则与现状
-- 当前实现未在UI层进行格式校验，仅在保存时对空白字符进行trim。
-- 服务端侧通过HTTP状态码401/403间接判定密钥是否有效。
-- 建议在UI层增加正则或长度/前缀校验，以提升用户体验与减少无效请求。
+### 设置界面更新
+SettingsView 进行了重大更新，移除了 API Key 配置入口，新增了 Premium 订阅功能展示和管理。
 
-章节来源
-- [APIKeyConfigView.swift:61-65](file://Views/APIKeyConfigView.swift#L61-L65)
-- [AISummaryService.swift:89-96](file://Services/AISummaryService.swift#L89-L96)
-- [CosyVoiceService.swift:59-66](file://Services/CosyVoiceService.swift#L59-L66)
+**主要变更：**
+- 新增 Premium 功能区域，显示订阅状态
+- 移除 API Key 配置相关的所有 UI 元素
+- 添加订阅状态检查和购买入口
+- 保持其他设置功能的完整性
 
-### 密钥存储机制与隐私保护
-- 存储位置：UserDefaults，键名dashscope_api_key。
-- 加密情况：当前未对密钥进行额外加密或系统级安全存储（如Keychain）。
-- 隐私风险：UserDefaults以明文形式存在，易被设备备份或越狱环境读取。
-- 建议：迁移至iOS Keychain，结合应用标识符与访问控制策略，降低泄露风险。
+**章节来源**
+- [SettingsView.swift:44-82](file://Views/SettingsView.swift#L44-L82)
+- [SettingsView.swift:76-82](file://Views/SettingsView.swift#L76-L82)
 
-章节来源
-- [APIKeyConfigView.swift:61-65](file://Views/APIKeyConfigView.swift#L61-L65)
-- [AISummaryService.swift:12-16](file://Services/AISummaryService.swift#L12-L16)
-- [CosyVoiceService.swift:14-17](file://Services/CosyVoiceService.swift#L14-L17)
+### 付费墙界面
+PaywallView 提供了完整的订阅购买界面，展示 Premium 功能列表和订阅选项。
 
-### 密钥导入导出与批量配置管理
-- 当前未提供导入/导出功能。
-- 建议方案：
-  - 导出：将dashscope_api_key与其他配置项打包为JSON文件，支持分享与备份。
-  - 导入：解析JSON并写入UserDefaults或Keychain，提供冲突处理与回滚机制。
-  - 批量配置：支持多账号或多环境的密钥切换，通过配置文件选择激活项。
+**主要功能：**
+- 功能展示：清晰列出所有 Premium 功能
+- 订阅选项：支持月度和年度订阅
+- 购买流程：集成 StoreKit 2 购买流程
+- 错误处理：完善的购买错误提示
+- 恢复购买：支持跨设备恢复购买记录
 
-[本节为概念性建议，不直接分析具体文件]
+**章节来源**
+- [PaywallView.swift:6-11](file://Views/PaywallView.swift#L6-L11)
+- [PaywallView.swift:160-175](file://Views/PaywallView.swift#L160-L175)
 
-### 密钥轮换与安全最佳实践
-- 定期轮换：建议按周期更新DashScope API Key，并在UI提供“更换密钥”入口。
-- 最小权限：为不同功能创建独立密钥，限制访问范围。
-- 传输安全：确保HTTPS通信，已在服务层使用HTTPS端点。
-- 审计与告警：记录密钥变更事件，异常访问及时告警。
-- 失效检测：在首次调用失败且返回401/403时，主动引导用户重新配置。
+### 错误处理机制
+新的错误处理机制集中在 ServerAPIClient 中，提供统一的错误分类和用户友好的错误消息。
 
-[本节为通用安全建议，不直接分析具体文件]
+**错误类型：**
+- invalidResponse：服务器返回数据异常
+- unauthorized：认证失败，需要重新订阅
+- quotaExceeded：使用次数超限
+- noAudioData：未获取到音频数据
+- serverError：服务器错误，包含状态码和消息
+- networkError：网络连接错误
+
+**章节来源**
+- [ServerAPIClient.swift:178-202](file://Services/ServerAPIClient.swift#L178-L202)
+- [ServerAPIClient.swift:161-173](file://Services/ServerAPIClient.swift#L161-L173)
 
 ## 依赖关系分析
-- APIKeyConfigView依赖UserDefaults读写dashscope_api_key。
-- AISummaryService与CosyVoiceService在构造时读取dashscope_api_key，并在网络请求中注入Authorization头。
-- SettingsView作为入口，可导航至APIKeyConfigView。
-- ErrorHandler集中处理错误提示。
+新的架构简化了依赖关系，消除了客户端对 API Key 的直接依赖，所有 AI 服务都通过统一的服务器中转层访问。
 
 ```mermaid
 graph LR
-AV["APIKeyConfigView"] --> UD["UserDefaults"]
-AIS["AISummaryService"] --> UD
-CV["CosyVoiceService"] --> UD
-SV["SettingsView"] --> AV
-EH["ErrorHandler"] --> AV
+SV["SettingsView"] --> SM["SubscriptionManager"]
+SM --> ServerClient["ServerAPIClient"]
+SV --> AISvc["AISummaryService"]
+SV --> CosySvc["CosyVoiceService"]
+AISvc --> ServerClient
+CosySvc --> ServerClient
+ServerClient --> Server["中转服务器"]
+PW["PaywallView"] --> SM
 ```
 
-图示来源
-- [APIKeyConfigView.swift:55-65](file://Views/APIKeyConfigView.swift#L55-L65)
-- [AISummaryService.swift:12-16](file://Services/AISummaryService.swift#L12-L16)
-- [CosyVoiceService.swift:14-17](file://Services/CosyVoiceService.swift#L14-L17)
-- [SettingsView.swift:19-141](file://Views/SettingsView.swift#L19-L141)
-- [ErrorHandler.swift:20-35](file://Services/ErrorHandler.swift#L20-L35)
+**图示来源**
+- [SettingsView.swift:44-82](file://Views/SettingsView.swift#L44-L82)
+- [SubscriptionManager.swift:8-39](file://Services/SubscriptionManager.swift#L8-L39)
+- [AISummaryService.swift:6-11](file://Services/AISummaryService.swift#L6-L11)
+- [CosyVoiceService.swift:7-12](file://Services/CosyVoiceService.swift#L7-L12)
+- [ServerAPIClient.swift:6-23](file://Services/ServerAPIClient.swift#L6-L23)
+- [PaywallView.swift:6-11](file://Views/PaywallView.swift#L6-L11)
 
-章节来源
-- [APIKeyConfigView.swift:10-65](file://Views/APIKeyConfigView.swift#L10-L65)
-- [AISummaryService.swift:12-34](file://Services/AISummaryService.swift#L12-L34)
-- [CosyVoiceService.swift:14-36](file://Services/CosyVoiceService.swift#L14-L36)
-- [SettingsView.swift:19-141](file://Views/SettingsView.swift#L19-L141)
-- [ErrorHandler.swift:20-35](file://Services/ErrorHandler.swift#L20-L35)
+**章节来源**
+- [SettingsView.swift:44-82](file://Views/SettingsView.swift#L44-L82)
+- [SubscriptionManager.swift:8-39](file://Services/SubscriptionManager.swift#L8-L39)
+- [AISummaryService.swift:6-11](file://Services/AISummaryService.swift#L6-L11)
+- [CosyVoiceService.swift:7-12](file://Services/CosyVoiceService.swift#L7-L12)
+- [ServerAPIClient.swift:6-23](file://Services/ServerAPIClient.swift#L6-L23)
+- [PaywallView.swift:6-11](file://Views/PaywallView.swift#L6-L11)
 
 ## 性能与安全考量
-- 性能：
-  - 网络超时：AISummaryService与CosyVoiceService分别设置了合理的超时时间，避免长时间阻塞。
-  - 分段合成：CosyVoiceService提供分段合成方法，适合长文本场景，避免单次请求过大。
-- 安全：
-  - 当前使用UserDefaults明文存储，存在安全风险，建议迁移至Keychain。
-  - 建议在UI层增加格式校验与二次确认，防止误操作。
-  - 对敏感操作（如删除、重置密钥）增加确认对话框。
+**性能优化：**
+- 统一的 URLSession 配置，避免重复创建连接
+- 合理的超时设置，防止长时间阻塞
+- 服务端缓存和负载均衡，提升响应速度
+- 分段合成支持，适合长文本场景
 
-章节来源
-- [AISummaryService.swift:60-66](file://Services/AISummaryService.swift#L60-L66)
-- [CosyVoiceService.swift:32-36](file://Services/CosyVoiceService.swift#L32-L36)
-- [CosyVoiceService.swift:167-186](file://Services/CosyVoiceService.swift#L167-L186)
+**安全增强：**
+- API Key 完全从客户端移除，仅存储在服务器端
+- 所有敏感操作通过 HTTPS 加密传输
+- 订阅状态验证，防止未授权访问
+- 服务器端限流和配额管理
+- 统一的错误处理，避免敏感信息泄露
+
+**章节来源**
+- [ServerAPIClient.swift:18-23](file://Services/ServerAPIClient.swift#L18-L23)
+- [CosyVoiceService.swift:58-77](file://Services/CosyVoiceService.swift#L58-L77)
+- [ServerAPIClient.swift:161-173](file://Services/ServerAPIClient.swift#L161-L173)
 
 ## 故障排查指南
-- 现象：提示“请先在设置中配置阿里云 API Key”
-  - 原因：UserDefaults中不存在dashscope_api_key。
-  - 处理：进入设置页，打开API Key配置，输入并保存。
-- 现象：提示“API Key 无效，请检查后重试”
-  - 原因：服务端返回401/403。
-  - 处理：确认DashScope控制台中的密钥是否过期或被禁用；必要时重新生成。
-- 现象：网络错误或服务器异常
-  - 原因：网络不可用或服务端返回非200状态码。
-  - 处理：检查网络连接与服务端状态；查看错误详情并稍后重试。
+**现象：提示"请确认已订阅 Premium"**
+- 原因：服务器返回 401/403 错误，表示未订阅或订阅过期
+- 处理：检查订阅状态，引导用户完成购买流程
 
-章节来源
-- [AISummaryService.swift:158-179](file://Services/AISummaryService.swift#L158-L179)
-- [CosyVoiceService.swift:191-218](file://Services/CosyVoiceService.swift#L191-L218)
-- [ErrorHandler.swift:20-35](file://Services/ErrorHandler.swift#L20-L35)
+**现象：提示"本月使用次数已达上限"**
+- 原因：服务器返回 402/429 错误，表示达到配额限制
+- 处理：升级套餐或等待下月重置
+
+**现象：提示"服务器返回数据异常"**
+- 原因：服务器响应格式不符合预期
+- 处理：检查网络连接，稍后重试
+
+**现象：提示"网络错误"**
+- 原因：网络连接失败或超时
+- 处理：检查网络连接状态，确认服务器可达性
+
+**章节来源**
+- [ServerAPIClient.swift:178-202](file://Services/ServerAPIClient.swift#L178-L202)
+- [ServerAPIClient.swift:161-173](file://Services/ServerAPIClient.swift#L161-L173)
 
 ## 结论
-当前API密钥配置界面实现了基础的输入、保存与读取能力，并通过服务层对缺失与无效密钥进行了明确错误提示。然而，密钥存储仍采用UserDefaults明文方式，缺乏格式校验与导入导出能力。建议优先提升安全性（迁移至Keychain）、增强校验与用户体验（格式校验、二次确认），并补充导入导出与批量配置管理能力，以满足生产环境的安全与管理需求。
+通过移除客户端侧 API 密钥配置功能并引入订阅制服务器中转架构，应用实现了更高的安全性和更简洁的用户体验。新的架构将敏感信息完全托管在服务器端，通过订阅管理控制功能访问权限，同时保持了良好的性能和可扩展性。这种设计模式为未来的功能扩展和安全增强奠定了坚实基础。
 
-## 附录：集成新服务配置界面指南
-- 新增配置界面：
-  - 新建一个SwiftUI View，复用APIKeyConfigView的模式：安全输入框、保存/取消、帮助信息。
-  - 定义独立的UserDefaults键名，避免与现有dashscope_api_key冲突。
-- 服务层接入：
-  - 在服务构造或调用处读取对应键值，并在请求头中注入鉴权信息。
-  - 针对缺失与无效密钥定义明确的错误类型与本地化描述。
-- 错误处理：
-  - 使用ErrorHandler统一展示错误提示，保持UI一致性。
-- 安全与校验：
-  - 在UI层增加格式校验与二次确认。
-  - 考虑将敏感配置迁移至Keychain。
-- 测试与回归：
-  - 覆盖正常保存、无效格式、重复保存、取消操作等用例。
-  - 模拟401/403响应，验证错误提示路径。
+## 附录：订阅制服务集成指南
+**新增订阅功能步骤：**
+1. 在 App Store Connect 中配置订阅产品和定价
+2. 更新 SubscriptionManager 中的 productIDs 配置
+3. 在 SettingsView 中添加订阅状态检查和购买入口
+4. 在服务层添加订阅状态验证逻辑
+5. 实现错误处理和用户反馈机制
 
-[本节为通用集成建议，不直接分析具体文件]
+**服务器中转 API 开发要点：**
+1. 设计统一的 API 接口规范
+2. 实现 API Key 管理和轮换机制
+3. 添加请求频率限制和配额管理
+4. 实现完善的日志记录和监控
+5. 提供健康检查和状态查询接口
+
+**迁移现有功能建议：**
+1. 逐步替换直接 API 调用为服务器中转
+2. 保持向后兼容的错误处理
+3. 添加详细的日志记录便于调试
+4. 实施 A/B 测试验证新功能效果
+5. 建立完善的监控和告警机制

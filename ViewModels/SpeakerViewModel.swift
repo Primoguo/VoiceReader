@@ -27,6 +27,7 @@ final class SpeakerViewModel: ObservableObject {
     // 持有引擎实例
     private let systemSynthesizer = SpeechService()
     private let cosyVoiceSynthesizer = CosyVoiceSynthesizer()
+    private let edgeTTSSynthesizer = EdgeTTSSynthesizer()
 
     // AI 总结状态
     @Published var summaryResult: SummaryResult?
@@ -76,6 +77,8 @@ final class SpeakerViewModel: ObservableObject {
         switch engine {
         case .system, .legacySystem:
             synthesizer = systemSynthesizer
+        case .edgeTTS:
+            synthesizer = edgeTTSSynthesizer
         case .knowledgeVoice:
             synthesizer = cosyVoiceSynthesizer
         }
@@ -320,8 +323,8 @@ final class SpeakerViewModel: ObservableObject {
             Task { @MainActor in
                 guard let self else { return }
                 print("🔊 TTS 引擎错误: \(error.localizedDescription)")
-                // Knowledge Voice 出错时降级到系统 TTS
-                if self.voiceConfig.engine == .knowledgeVoice {
+                // 云端引擎出错时降级到系统 TTS
+                if self.voiceConfig.engine == .knowledgeVoice || self.voiceConfig.engine == .edgeTTS {
                     print("️ 降级到 Apple Neural TTS")
                     self.voiceConfig.engine = .system
                     self.synthesizer = self.systemSynthesizer

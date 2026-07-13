@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: ui/document_library
+title: 书库文档列表与卡片视图
+scope:
+    - Views/DocumentCardView.swift
+    - Views/DocumentListView.swift
+source_files: []
+depends_on: []
+related_to:
+    - path: models
+    - path: services

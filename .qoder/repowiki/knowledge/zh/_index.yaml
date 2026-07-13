@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-07T10:43:11Z"
+exported_at: "2026-07-13T14:46:23Z"
 modules:
     "":
-        dir_name: Knowledge（挠荔枝）iOS 有声阅读器项目根
-        title: Knowledge（挠荔枝）iOS 有声阅读器项目根
+        dir_name: Knowledge iOS 应用装配层
+        title: Knowledge iOS 应用装配层
         scope:
             - .gitignore
             - .gitkeep
@@ -24,95 +24,21 @@ modules:
             - ui
         depends_on: []
         related_to: []
-    build_system:
-        dir_name: Xcode 原生构建与手工 pbxproj 脚本（无 CI_自动化）_2
-        title: Xcode 原生构建与手工 pbxproj 脚本（无 CI/自动化）
-        scope: []
-        source_files:
-            - Knowledge.xcodeproj/project.pbxproj
-            - copy_pbxproj.py
-            - fix_pbxproj.py
-            - modify_pbxproj.py
-            - Resources/Info.plist
-            - ShareExtension/Info.plist
-        children: []
-        depends_on: []
-        related_to: []
-    configuration_system:
-        dir_name: 基于 UserDefaults 的轻量级运行时配置系统_2
-        title: 基于 UserDefaults 的轻量级运行时配置系统
-        scope: []
-        source_files:
-            - Resources/Info.plist
-            - Models/VoiceConfig.swift
-            - ViewModels/SpeakerViewModel.swift
-            - Views/APIKeyConfigView.swift
-            - Views/SettingsView.swift
-            - Services/ThemeManager.swift
-            - Models/ClonedVoice.swift
-            - Services/CosyVoiceService.swift
-            - Services/AISummaryService.swift
-        children: []
-        depends_on: []
-        related_to: []
-    dependency_management:
-        dir_name: iOS 原生依赖管理（无第三方包管理器）_2
-        title: iOS 原生依赖管理（无第三方包管理器）
-        scope: []
-        source_files:
-            - Knowledge.xcodeproj/project.pbxproj
-        children: []
-        depends_on: []
-        related_to: []
-    error_handling:
-        dir_name: Swift 错误处理：LocalizedError + ErrorHandler 单例模式_2
-        title: Swift 错误处理：LocalizedError + ErrorHandler 单例模式
-        scope: []
-        source_files:
-            - Services/ErrorHandler.swift
-            - Services/AISummaryService.swift
-            - Services/CosyVoiceService.swift
-            - Services/TextExtractionService.swift
-            - Views/SummaryCardView.swift
-        children: []
-        depends_on: []
-        related_to: []
-    frontend_style:
-        dir_name: iOS SwiftUI 主题与视觉样式体系
-        title: iOS SwiftUI 主题与视觉样式体系
-        scope: []
-        source_files:
-            - Models/ThemeMode.swift
-            - Services/ThemeManager.swift
-            - App/KnowledgeApp.swift
-            - Views/SettingsView.swift
-            - Resources/Assets.xcassets/AccentColor.colorset/Contents.json
-        children: []
-        depends_on: []
-        related_to: []
-    logging_system:
-        dir_name: 基于 print 的轻量级日志与错误处理_2
-        title: 基于 print 的轻量级日志与错误处理
-        scope: []
-        source_files:
-            - Services/ErrorHandler.swift
-        children: []
-        depends_on: []
-        related_to: []
     models:
-        dir_name: 领域模型与配置实体
-        title: 领域模型与配置实体
+        dir_name: Knowledge 应用数据模型层
+        title: Knowledge 应用数据模型层
         scope:
             - Models/
         source_files: []
         children: []
         depends_on: []
         related_to:
-            - path: ui/document_management
+            - path: services
+            - path: ui/document_library
             - path: ui/player_controls
     resources:
-        dir_name: iOS 应用资源包（Info.plist、图标与颜色）
-        title: iOS 应用资源包（Info.plist、图标与颜色）
+        dir_name: iOS 应用静态资源包（Info.plist _ AppIcon _ AccentColor）
+        title: iOS 应用静态资源包（Info.plist / AppIcon / AccentColor）
         scope:
             - Resources/
         source_files: []
@@ -120,46 +46,76 @@ modules:
         depends_on: []
         related_to: []
     services:
-        dir_name: 文档阅读与语音合成服务层
-        title: 文档阅读与语音合成服务层
+        dir_name: iOS 端服务聚合层
+        title: iOS 端服务聚合层
         scope:
             - Services/
+        source_files: []
+        children:
+            - services/server_api_client
+            - services/subscription_manager
+        depends_on: []
+        related_to:
+            - path: models
+            - path: ui/document_library
+            - path: ui/player_controls
+    services/server_api_client:
+        dir_name: AI 中转服务器 API 客户端
+        title: AI 中转服务器 API 客户端
+        scope:
+            - Services/ServerAPIClient.swift
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    services/subscription_manager:
+        dir_name: 订阅与内购状态管理
+        title: 订阅与内购状态管理
+        scope:
+            - Services/SubscriptionManager.swift
         source_files: []
         children: []
         depends_on: []
         related_to:
-            - path: ui/document_management
-            - path: ui/player_controls
+            - path: ui/paywall
     ui:
-        dir_name: SwiftUI 主界面与 UIKit 桥接层
-        title: SwiftUI 主界面与 UIKit 桥接层
+        dir_name: SwiftUI 前端呈现层
+        title: SwiftUI 前端呈现层
         scope:
             - Views/
             - UIKit/
         source_files: []
         children:
-            - ui/document_management
+            - ui/document_library
+            - ui/paywall
             - ui/player_controls
         depends_on: []
         related_to: []
-    ui/document_management:
-        dir_name: 文档管理与书库视图
-        title: 文档管理与书库视图
+    ui/document_library:
+        dir_name: 书库文档列表与卡片视图
+        title: 书库文档列表与卡片视图
         scope:
-            - Views/ContentView.swift
+            - Views/DocumentCardView.swift
             - Views/DocumentListView.swift
-            - Views/DocumentRowView.swift
-            - UIKit/DocumentPicker.swift
         source_files: []
         children: []
         depends_on: []
         related_to:
             - path: models
             - path: services
-            - path: ui/player_controls
+    ui/paywall:
+        dir_name: 付费墙订阅界面
+        title: 付费墙订阅界面
+        scope:
+            - Views/PaywallView.swift
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: services/subscription_manager
     ui/player_controls:
-        dir_name: 文档朗读播放器与摘要卡片视图
-        title: 文档朗读播放器与摘要卡片视图
+        dir_name: 文档朗读播放器与 AI 摘要 UI
+        title: 文档朗读播放器与 AI 摘要 UI
         scope:
             - Views/PlayerView.swift
             - Views/PlayerControlsView.swift
@@ -170,4 +126,3 @@ modules:
         related_to:
             - path: models
             - path: services
-            - path: ui/document_management

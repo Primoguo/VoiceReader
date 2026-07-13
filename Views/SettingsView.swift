@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var selectedEngine: TTSEngine = .system
     @State private var showVoiceSelect = false
     @State private var showSystemVoiceSelect = false
+    @State private var showEdgeVoiceSelect = false
 
     private let langs = [("zh-CN", "中文（普通话）"), ("zh-HK", "中文（粤语）"), ("en-US", "English (US)"), ("en-GB", "English (UK)"), ("ja-JP", "日本語"), ("ko-KR", "한국어")]
 
@@ -103,7 +104,7 @@ struct SettingsView: View {
 
                 Section("语音引擎") {
                     ForEach(TTSEngine.allCases.filter { $0.isSupported }, id: \.self) { engine in
-                        // Knowledge Voice 标记为即将推出（灰化不可选）
+                        // Knowledge Voice 标记为即将推出
                         if engine == .knowledgeVoice {
                             comingSoonEngineRow(engine: engine)
                         } else {
@@ -123,7 +124,17 @@ struct SettingsView: View {
                                         Image(systemName: "checkmark")
                                             .foregroundColor(.accentColor)
                                     }
-                                    // 标注推荐选项
+                                    // Edge TTS 标注“免费”
+                                    if engine == .edgeTTS {
+                                        Text("免费")
+                                            .font(.caption2)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.green.opacity(0.15))
+                                            .cornerRadius(4)
+                                            .foregroundColor(.green)
+                                    }
+                                    // Apple Neural TTS 标注“推荐”
                                     if engine == .system {
                                         Text("推荐")
                                             .font(.caption2)
@@ -217,6 +228,35 @@ struct SettingsView: View {
                         }
                     }
                     
+                    // Edge TTS 音色选择入口
+                    if selectedEngine == .edgeTTS {
+                        Button(action: { showEdgeVoiceSelect = true }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("云端音色")
+                                        .font(.body)
+                                    Text("选择微软 Neural 中文音色")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                if let voiceId = speakerVM.voiceConfig.edgeVoiceId,
+                                   let voice = EdgeTTSService.shared.allVoices.first(where: { $0.id == voiceId }) {
+                                    Text(voice.name)
+                                        .font(.caption)
+                                        .foregroundColor(.accentColor)
+                                } else {
+                                    Text("晓晓")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    
                     // 传统语言选择（降级兼容）
                     if selectedEngine == .legacySystem {
                         Picker("语言", selection: $selectedLang) {
@@ -250,6 +290,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showSystemVoiceSelect) {
                 SystemVoiceSelectView(speakerVM: speakerVM)
+            }
+            .sheet(isPresented: $showEdgeVoiceSelect) {
+                EdgeVoiceSelectView(speakerVM: speakerVM)
             }
         }
     }
