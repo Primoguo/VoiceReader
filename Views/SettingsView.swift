@@ -306,6 +306,16 @@ struct SettingsView: View {
 
                 Section("关于") {
                     HStack { Text("版本"); Spacer(); Text("2.0.0").foregroundColor(.secondary) }
+                    Link(destination: URL(string: "https://naolizhi.cn/privacy.html")!) {
+                        HStack {
+                            Text("隐私政策")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
             }
             .navigationTitle("设置")
