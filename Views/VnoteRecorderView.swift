@@ -68,6 +68,15 @@ struct VnoteRecorderView: View {
             .sheet(isPresented: $showPremiumPaywall) {
                 PaywallView()
             }
+            // 监听自动停止事件
+            .onChange(of: recorder.autoStopReason) { _, reason in
+                guard let reason = reason else { return }
+                errorMessage = reason.rawValue
+                // 自动停止后直接处理录音
+                if recorder.duration >= 1 {
+                    stopAndProcess()
+                }
+            }
         }
     }
 
@@ -87,10 +96,25 @@ struct VnoteRecorderView: View {
             recordButton
 
             // 提示
-            Text(phase == .idle ? "点击开始录音" : "录音中...")
+            recordingHintText
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
+    }
+
+    private var recordingHintText: Text {
+        if phase == .idle {
+            return Text("点击开始录音")
+        }
+        // 录音中显示状态
+        let remaining = AudioRecorderService.maxRecordingDuration - recorder.duration
+        if remaining < 600 {  // 剩余不足 10 分钟
+            let mins = Int(remaining) / 60
+            return Text("录音中... 剩余 \(mins) 分钟自动停止")
+                .foregroundColor(.orange)
+        }
+        return Text("录音中...")
     }
 
     private var waveformView: some View {

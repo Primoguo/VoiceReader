@@ -13,7 +13,8 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
     private var fullText: String = ""
     private var config: VoiceConfig = .defaultConfig
     private var currentRange = NSRange(location: 0, length: 0)
-    private var isManuallyStopped = false
+    /// 递增计数器，防止 seek 后旧 utterance 的 didFinish 回调触发续播
+    private var speakGeneration: UInt64 = 0
 
     private static let charsPerSecond: Int = 3
 
@@ -30,7 +31,8 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
     func speak(text: String, from position: Int = 0, config: VoiceConfig = .defaultConfig) {
         self.fullText = text
         self.config = config
-        self.isManuallyStopped = false
+        self.speakGeneration &+= 1
+        let thisGeneration = self.speakGeneration
 
         let nsText = text as NSString
         guard position < nsText.length else {
@@ -79,7 +81,10 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
         }
 
         synthesizer.speak(utterance)
-        updateState(.playing)
+        // 只有最新一代的 speak 才更新状态（防止旧回调覆盖）
+        if thisGeneration == self.speakGeneration {
+            updateState(.playing)
+        }
     }
 
     func pause() {
@@ -95,7 +100,7 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
     }
 
     func stop() {
-        isManuallyStopped = true
+        speakGeneration &+= 1  // 使所有进行中的回调失效
         synthesizer.stopSpeaking(at: .immediate)
         updateState(.idle)
     }
@@ -133,11 +138,16 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
     // MARK: - AVSpeechSynthesizerDelegate
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        guard !isManuallyStopped else { return }
+        // 只响应最新一代 speak 的回调，防止 seek 后旧 utterance 触发续播
+        let gen = self.speakGeneration
         let nextPosition = currentRange.location + currentRange.length
         let nsText = fullText as NSString
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            guard gen == self.speakGeneration else {
+                print("🔇 didFinish: stale generation, ignoring")
+                return
+            }
             if nextPosition >= nsText.length {
                 self.onPositionChange?(nsText.length)
                 self.updateState(.finished)

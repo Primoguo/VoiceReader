@@ -21,13 +21,73 @@ final class SubscriptionManager: ObservableObject {
     @Published var products: [Product] = []
 
     /// 当前活跃的订阅（如果有）
-    @Published var currentSubscription: Product.SubscriptionInfo?
+    @Published var currentSubscription: Product.SubscriptionInfo? = nil
+
+    /// 订阅起始日期（从 StoreKit 2 获取）
+    @Published var subscriptionStartDate: Date? = nil
 
     // MARK: - Configuration
 
     // TODO: [待办] 在 App Store Connect 中配置 IAP 产品后，替换为实际的产品 ID
     // 配置步骤：App Store Connect → 你的 App → 订阅 → 创建订阅组 → 添加月订阅 + 年订阅
     private let productIDs = ["com.knowledge.premium.monthly", "com.knowledge.premium.yearly"]
+
+    // MARK: - 云端转写配额
+
+    /// 每月云端转写额度（秒）：10 小时
+    static let monthlyTranscriptionQuota: TimeInterval = 10 * 3600
+
+    /// 本周期已使用的云端转写秒数
+    var transcriptionUsedSeconds: TimeInterval {
+        get { UserDefaults.standard.double(forKey: "transcription_used_seconds") }
+        set { UserDefaults.standard.set(newValue, forKey: "transcription_used_seconds") }
+    }
+
+    /// 上一次配额重置的订阅周期序号
+    var lastResetCycleIndex: Int {
+        get { UserDefaults.standard.integer(forKey: "transcription_last_reset_cycle") }
+        set { UserDefaults.standard.set(newValue, forKey: "transcription_last_reset_cycle") }
+    }
+
+    /// 本周期剩余云端转写秒数
+    var remainingTranscriptionSeconds: TimeInterval {
+        autoResetQuotaIfNeeded()
+        return max(0, Self.monthlyTranscriptionQuota - transcriptionUsedSeconds)
+    }
+
+    /// 是否还有云端转写额度
+    var canUseCloudTranscription: Bool {
+        isPremium && remainingTranscriptionSeconds > 0
+    }
+
+    /// 下一个配额重置日期（基于订阅周期）
+    var transcriptionQuotaResetDate: Date? {
+        guard let start = subscriptionStartDate else { return nil }
+        let now = Date()
+        let cal = Calendar.current
+        // 找到当前所处的周期序号
+        let monthsSinceStart = cal.dateComponents([.month], from: start, to: now).month ?? 0
+        // 下一个重置日 = 订阅起始日 + (monthsSinceStart + 1) 个月
+        return cal.date(byAdding: .month, value: monthsSinceStart + 1, to: start)
+    }
+
+    /// 消耗云端转写配额
+    func consumeTranscriptionQuota(seconds: TimeInterval) {
+        guard isPremium else { return }
+        autoResetQuotaIfNeeded()
+        transcriptionUsedSeconds += seconds
+    }
+
+    /// 自动重置配额（当进入新的订阅周期时）
+    private func autoResetQuotaIfNeeded() {
+        guard let start = subscriptionStartDate else { return }
+        let now = Date()
+        let monthsSinceStart = Calendar.current.dateComponents([.month], from: start, to: now).month ?? 0
+        if monthsSinceStart > lastResetCycleIndex {
+            transcriptionUsedSeconds = 0
+            lastResetCycleIndex = monthsSinceStart
+        }
+    }
 
     // MARK: - AI 限免配额
 
@@ -92,19 +152,19 @@ final class SubscriptionManager: ObservableObject {
         }
     }
 
-    /// 检查当前订阅状态
+    /// 检查当前订阅状态，并从 StoreKit 2 获取订阅起始日期
     func checkSubscriptionStatus() async {
-        // 检查所有订阅类型的 entitlements
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result {
-                // 检查交易是否仍在有效期内
                 if transaction.revocationDate == nil {
                     isPremium = true
+                    subscriptionStartDate = transaction.originalPurchaseDate
                     return
                 }
             }
         }
         isPremium = false
+        subscriptionStartDate = nil
     }
 
     /// 购买订阅

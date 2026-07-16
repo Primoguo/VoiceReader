@@ -77,6 +77,14 @@ final class SpeakerViewModel: ObservableObject {
             return
         }
         
+        let wasPlaying = (state == .playing)
+        let pos = currentPosition
+
+        // 先停止所有引擎（避免旧引擎继续播放）
+        systemSynthesizer.stop()
+        edgeTTSSynthesizer.stop()
+
+        // 切换引擎指针
         switch engine {
         case .system, .legacySystem:
             synthesizer = systemSynthesizer
@@ -87,10 +95,8 @@ final class SpeakerViewModel: ObservableObject {
         saveConfig(voiceConfig)
         setupBindings()
 
-        // 如果正在播放，用新引擎重新开始
-        if state == .playing, let doc = currentDocument {
-            let pos = currentPosition
-            synthesizer.stop()
+        // 如果之前在播放，用新引擎从当前位置继续
+        if wasPlaying, let doc = currentDocument {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 guard let self else { return }
                 self.synthesizer.speak(text: doc.extractedText, from: pos, config: self.voiceConfig)
