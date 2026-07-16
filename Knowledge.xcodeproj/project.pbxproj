@@ -60,6 +60,11 @@
 		Z6A7B8C9D0E1F2A3B4C5D6E7F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = Z1B2C3D4E5F6A7B8C9D0E1F2A3 /* Assets.xcassets */; };
 		62D6E04ED8EB4FE5AB65FC3A /* AudioCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C2B39403ADD46268C168655 /* AudioCacheService.swift */; };
 		CC112233445566778899AABB /* CompanionChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC112233445566778899CCDD /* CompanionChat.swift */; };
+		KE000006AAAA0006BBBB0006 /* KnowledgeEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = KE000001AAAA0001BBBB0001 /* KnowledgeEntry.swift */; };
+		KE000007AAAA0007BBBB0007 /* KnowledgeChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = KE000002AAAA0002BBBB0002 /* KnowledgeChat.swift */; };
+		KE000008AAAA0008BBBB0008 /* KnowledgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = KE000003AAAA0003BBBB0003 /* KnowledgeService.swift */; };
+		KE000009AAAA0009BBBB0009 /* KnowledgeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KE000004AAAA0004BBBB0004 /* KnowledgeListView.swift */; };
+		KE000010AAAA0010BBBB0010 /* KnowledgeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KE000005AAAA0005BBBB0005 /* KnowledgeDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -98,6 +103,11 @@
 		B706E258FC3352EB1EB7194E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BD165D274BDD6BC995863DCB /* ClonedVoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClonedVoice.swift; sourceTree = "<group>"; };
 		CC112233445566778899CCDD /* CompanionChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionChat.swift; sourceTree = "<group>"; };
+		KE000001AAAA0001BBBB0001 /* KnowledgeEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeEntry.swift; sourceTree = "<group>"; };
+		KE000002AAAA0002BBBB0002 /* KnowledgeChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeChat.swift; sourceTree = "<group>"; };
+		KE000003AAAA0003BBBB0003 /* KnowledgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeService.swift; sourceTree = "<group>"; };
+		KE000004AAAA0004BBBB0004 /* KnowledgeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeListView.swift; sourceTree = "<group>"; };
+		KE000005AAAA0005BBBB0005 /* KnowledgeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeDetailView.swift; sourceTree = "<group>"; };
 		C3D4E5F6A7B8C9D0E1F2A3B4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CD2FF9A9B2611C44593160A1 /* CosyVoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CosyVoiceService.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60001AABB0001 /* EdgeTTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeTTSService.swift; sourceTree = "<group>"; };
@@ -173,6 +183,7 @@
 				A1B2C3D4E5F60001AABB0001 /* EdgeTTSService.swift */,
 				A1B2C3D4E5F60002AABB0001 /* EdgeTTSSynthesizer.swift */,
 				5C2B39403ADD46268C168655 /* AudioCacheService.swift */,
+				KE000003AAAA0003BBBB0003 /* KnowledgeService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -222,6 +233,8 @@
 				2741B587F01BE600A64A0CDF /* SummaryResult.swift */,
 				A64A7FA7ABE0AEBFF746D4FF /* LycheeLevelManager.swift */,
 				CC112233445566778899CCDD /* CompanionChat.swift */,
+				KE000001AAAA0001BBBB0001 /* KnowledgeEntry.swift */,
+				KE000002AAAA0002BBBB0002 /* KnowledgeChat.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -271,6 +284,8 @@
 				A1FF96F1D51F3ADFDC9934A4 /* VoiceSelectView.swift */,
 				EBF368582FFD0CCE001AEF1A /* SystemVoiceSelectView.swift */,
 				A509AEA20935F1364E7F0687 /* LycheeMascotView.swift */,
+				KE000004AAAA0004BBBB0004 /* KnowledgeListView.swift */,
+				KE000005AAAA0005BBBB0005 /* KnowledgeDetailView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -422,6 +437,11 @@
 				CE8713D0E7683062FC1A7C7B /* LycheeLevelManager.swift in Sources */,
 				AC498B3868DBDEF981B670CF /* LycheeMascotView.swift in Sources */,
 				CC112233445566778899AABB /* CompanionChat.swift in Sources */,
+				KE000006AAAA0006BBBB0006 /* KnowledgeEntry.swift in Sources */,
+				KE000007AAAA0007BBBB0007 /* KnowledgeChat.swift in Sources */,
+				KE000008AAAA0008BBBB0008 /* KnowledgeService.swift in Sources */,
+				KE000009AAAA0009BBBB0009 /* KnowledgeListView.swift in Sources */,
+				KE000010AAAA0010BBBB0010 /* KnowledgeDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

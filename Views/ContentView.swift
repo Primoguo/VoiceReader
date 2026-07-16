@@ -19,6 +19,8 @@ struct ContentView: View {
                 .tabItem { Label("书库", systemImage: "books.vertical.fill") }
             PlayerView(speakerVM: speakerVM)
                 .tabItem { Label("正在播放", systemImage: "headphones") }
+            KnowledgeListView()
+                .tabItem { Label("知识库", systemImage: "brain.head.profile") }
             SettingsView(speakerVM: speakerVM)
                 .tabItem { Label("设置", systemImage: "gearshape.fill") }
         }

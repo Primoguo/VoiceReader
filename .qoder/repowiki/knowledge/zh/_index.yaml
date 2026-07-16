@@ -3,126 +3,13 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-13T16:16:02Z"
+exported_at: "2026-07-16T10:12:34Z"
 modules:
     "":
-        dir_name: Knowledge iOS 应用装配层
-        title: Knowledge iOS 应用装配层
-        scope:
-            - .gitignore
-            - .gitkeep
-            - PRD.md
-            - README.md
-            - copy_pbxproj.py
-            - fix_pbxproj.py
-            - modify_pbxproj.py
-        source_files: []
-        children:
-            - models
-            - resources
-            - services
-            - ui
-        depends_on: []
-        related_to: []
-    models:
-        dir_name: 应用数据模型与持久化实体
-        title: 应用数据模型与持久化实体
-        scope:
-            - Models/
-        source_files: []
-        children: []
-        depends_on: []
-        related_to:
-            - path: services
-            - path: ui/document_library
-            - path: ui/player_controls
-    resources:
-        dir_name: iOS 应用静态资源包（Info.plist _ AppIcon _ AccentColor）
-        title: iOS 应用静态资源包（Info.plist / AppIcon / AccentColor）
-        scope:
-            - Resources/
+        dir_name: Knowledge iOS 应用（SwiftUI + SwiftData 阅读_听书）
+        title: Knowledge iOS 应用（SwiftUI + SwiftData 阅读/听书）
+        scope: []
         source_files: []
         children: []
         depends_on: []
         related_to: []
-    services:
-        dir_name: iOS 阅读助手服务聚合层
-        title: iOS 阅读助手服务聚合层
-        scope:
-            - Services/
-        source_files: []
-        children:
-            - services/server_api_client
-            - services/subscription_manager
-        depends_on: []
-        related_to:
-            - path: models
-            - path: ui/document_library
-            - path: ui/player_controls
-    services/server_api_client:
-        dir_name: AI 中转服务器 API 客户端
-        title: AI 中转服务器 API 客户端
-        scope:
-            - Services/ServerAPIClient.swift
-        source_files: []
-        children: []
-        depends_on: []
-        related_to: []
-    services/subscription_manager:
-        dir_name: 订阅与内购状态管理
-        title: 订阅与内购状态管理
-        scope:
-            - Services/SubscriptionManager.swift
-        source_files: []
-        children: []
-        depends_on: []
-        related_to:
-            - path: ui/paywall
-    ui:
-        dir_name: SwiftUI 前端呈现层
-        title: SwiftUI 前端呈现层
-        scope:
-            - Views/
-            - UIKit/
-        source_files: []
-        children:
-            - ui/document_library
-            - ui/paywall
-            - ui/player_controls
-        depends_on: []
-        related_to: []
-    ui/document_library:
-        dir_name: 书库文档列表与卡片视图
-        title: 书库文档列表与卡片视图
-        scope:
-            - Views/DocumentCardView.swift
-            - Views/DocumentListView.swift
-        source_files: []
-        children: []
-        depends_on: []
-        related_to:
-            - path: models
-            - path: services
-    ui/paywall:
-        dir_name: 付费墙订阅界面
-        title: 付费墙订阅界面
-        scope:
-            - Views/PaywallView.swift
-        source_files: []
-        children: []
-        depends_on: []
-        related_to:
-            - path: services/subscription_manager
-    ui/player_controls:
-        dir_name: 文档朗读播放器与 AI 摘要 UI
-        title: 文档朗读播放器与 AI 摘要 UI
-        scope:
-            - Views/PlayerView.swift
-            - Views/PlayerControlsView.swift
-            - Views/SummaryCardView.swift
-        source_files: []
-        children: []
-        depends_on: []
-        related_to:
-            - path: models
-            - path: services
