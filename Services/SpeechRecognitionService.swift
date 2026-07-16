@@ -59,18 +59,31 @@ final class SpeechRecognitionService {
     }
 
     private func performAppleRecognition(recognizer: SFSpeechRecognizer, audioURL: URL) async throws -> TranscriptionResult {
+        // 配置 Audio Session 为语音识别模式
+        let audioSession = AVAudioSession.sharedInstance()
+        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+
         let request = SFSpeechURLRecognitionRequest(url: audioURL)
         request.shouldReportPartialResults = false
         request.requiresOnDeviceRecognition = false  // 允许离线
 
+        print("[STT] Apple Speech: start recognition, file=\(audioURL.lastPathComponent)")
+
         return try await withCheckedThrowingContinuation { continuation in
+            var resumed = false
             recognizer.recognitionTask(with: request) { result, error in
+                guard !resumed else { return }
                 if let error = error {
+                    resumed = true
+                    print("[STT] Apple Speech error: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
                     return
                 }
                 if let result = result, result.isFinal {
+                    resumed = true
                     let text = result.bestTranscription.formattedString
+                    print("[STT] Apple Speech result: \(text.prefix(50))")
                     continuation.resume(returning: TranscriptionResult(
                         text: text,
                         sentences: [],  // Apple Speech 不提供时间戳
