@@ -343,8 +343,9 @@ struct PlayerView: View {
                     let lower = AttributedString.Index(stringRange.lowerBound, within: attributed)
                     let upper = AttributedString.Index(stringRange.upperBound, within: attributed)
                     if let lower, let upper {
-                        attributed[lower..<upper].foregroundColor = .blue
+                        attributed[lower..<upper].foregroundColor = .white
                         attributed[lower..<upper].font = .system(size: 17, weight: .bold, design: .serif)
+                        attributed[lower..<upper].backgroundColor = .blue
                     }
                 }
             }
