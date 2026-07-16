@@ -154,7 +154,7 @@ struct VnoteListView: View {
 
             // 底部信息
             HStack(spacing: 12) {
-                Text(entry.createdAt, style: .relative)
+                Text(entry.createdAt, format: .dateTime.month(.abbreviated).day().hour().minute())
                     .font(.caption2)
                     .foregroundColor(.secondary.opacity(0.6))
 
