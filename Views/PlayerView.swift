@@ -9,6 +9,7 @@ struct PlayerView: View {
     @State private var showSummary = false
     @State private var showCompanion = false
     @State private var showPaywall = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
@@ -343,9 +344,9 @@ struct PlayerView: View {
                     let lower = AttributedString.Index(stringRange.lowerBound, within: attributed)
                     let upper = AttributedString.Index(stringRange.upperBound, within: attributed)
                     if let lower, let upper {
-                        attributed[lower..<upper].foregroundColor = .white
+                        attributed[lower..<upper].foregroundColor = isDarkMode ? .black : .white
                         attributed[lower..<upper].font = .system(size: 17, weight: .bold, design: .serif)
-                        attributed[lower..<upper].backgroundColor = .blue
+                        attributed[lower..<upper].backgroundColor = isDarkMode ? .white : .blue
                     }
                 }
             }
@@ -374,6 +375,8 @@ struct PlayerView: View {
     }
 
     // MARK: - Helpers
+
+    private var isDarkMode: Bool { colorScheme == .dark }
 
     /// 计算段落归一化位置（用于进度条指示器）
     private func paragraphPositions(doc: Document) -> [Double] {
