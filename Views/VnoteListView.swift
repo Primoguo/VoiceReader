@@ -215,7 +215,7 @@ struct VnoteListView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 12)
-                .foregroundColor(.white)
+                .foregroundColor(Color(.systemBackground))
                 .background(Capsule().fill(Color.primary))
             }
             .padding(.top, 8)
