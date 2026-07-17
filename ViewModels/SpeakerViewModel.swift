@@ -53,8 +53,9 @@ final class SpeakerViewModel: ObservableObject {
     private var highlightDebounceTimer: Timer?
     /// 状态轮询定时器（单独管理，避免 setupBindings 重复创建）
     private var statePollingCancellable: AnyCancellable?
-    /// Seek 防护：阻止旧回调覆盖 seek 目标位置
-    private var isSeeking = false
+    /// Seek 防护：期望的 speak generation
+    /// nil = 正常播放（接受所有回调），非 nil = 只接受匹配 generation 的回调
+    private var expectedGeneration: UInt64? = nil
     /// Seek 去抖定时器（拖拽期间合并多次 seekTo 调用）
     private var seekDebounceTimer: Timer?
 
@@ -235,14 +236,14 @@ final class SpeakerViewModel: ObservableObject {
         let wasActive = (state == .playing || state == .paused)
         print("🎯 seekTo: progress=\(String(format: "%.2f", progress)), target=\(target), wasActive=\(wasActive), state=\(state), engine=\(voiceConfig.engine.displayName)")
 
-        // 标记 seek 中，阻止旧回调覆盖位置
-        isSeeking = true
+        // 标记 seek 防护：在 speak 开始前不接受任何回调
+        expectedGeneration = UInt64.max
 
         // 立即更新 UI（进度条 + 位置文字），消除拖拽释放后的视觉跳回
         currentPosition = target
         updateProgress(target)
 
-        // 停止当前播放
+        // 停止当前播放（speakGeneration 递增，旧回调自动失效）
         synthesizer.stop()
 
         // 去抖：拖拽期间多次 seekTo 只执行最后一次
@@ -252,17 +253,16 @@ final class SpeakerViewModel: ObservableObject {
             let seekTarget = target
             seekDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: false) { [weak self] _ in
                 guard let self else { return }
-                // 恢复目标位置（防止中间回调篡改）
+                // 恢复目标位置
                 self.currentPosition = seekTarget
                 self.updateProgress(seekTarget)
+                // speak 会递增 speakGeneration，之后的回调携带新 generation
                 self.synthesizer.speak(text: doc.extractedText, from: seekTarget, config: self.voiceConfig)
-                // 延迟解除 seek 标记，等新 utterance 的 willSpeakRange 稳定后
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    self.isSeeking = false
-                }
+                // 记录期望的 generation（speak 后的当前值）
+                self.expectedGeneration = self.synthesizer.speakGeneration
             }
         } else {
-            isSeeking = false
+            expectedGeneration = synthesizer.speakGeneration
             savePosition()
         }
     }
@@ -406,13 +406,19 @@ final class SpeakerViewModel: ObservableObject {
 
     private func setupBindings() {
         // 播放位置同步
-        synthesizer.onPositionChange = { [weak self] pos in
+        synthesizer.onPositionChange = { [weak self] pos, generation in
+            // 同步捕获 generation（在回调时刻，非异步）
+            let capturedGen = generation
             Task { @MainActor in
                 guard let self else { return }
-                // seek 期间忽略旧回调的位置更新，防止进度条跳回
-                guard !self.isSeeking else {
-                    print("🔇 onPositionChange: blocked by seek (pos=\(pos))")
-                    return
+                // Generation 检查：
+                // - expectedGeneration == nil: 正常播放，接受所有回调
+                // - expectedGeneration == UInt64.max: seek 后 speak 尚未开始，拒绝所有
+                // - 其他值: 只接受匹配的 generation
+                if let expected = self.expectedGeneration {
+                    guard capturedGen == expected else { return }
+                    // 第一个有效回调到达后，解除过滤（正常 chunk 切换不受影响）
+                    self.expectedGeneration = nil
                 }
                 self.currentPosition = pos
                 self.updateProgress(pos)

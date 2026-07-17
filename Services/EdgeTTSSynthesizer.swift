@@ -9,11 +9,14 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
     // MARK: - Protocol Properties
 
     private(set) var state: PlaybackState = .idle
-    var onPositionChange: ((Int) -> Void)?
+    var onPositionChange: ((Int, UInt64) -> Void)?
     var onRangeChange: ((NSRange) -> Void)?
     var onError: ((Error) -> Void)?
 
     // MARK: - Internal State
+
+    /// 当前 speak 代次，每次 speak/stop 递增
+    private(set) var speakGeneration: UInt64 = 0
 
     private let service = EdgeTTSService.shared
     private var audioPlayer: AVAudioPlayer?
@@ -39,6 +42,7 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
 
     func speak(text: String, from position: Int, config: VoiceConfig) {
         stop()
+        speakGeneration &+= 1
         currentConfig = config
 
         let voice = resolveVoice(from: config)
@@ -75,6 +79,7 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
     }
 
     func stop() {
+        speakGeneration &+= 1
         synthesisTask?.cancel()
         prefetchTask?.cancel()
         positionTimer?.invalidate()
@@ -262,7 +267,7 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
                 player.currentTime = player.duration * skipFraction
             }
 
-            onPositionChange?(basePosition + offset)
+            onPositionChange?(basePosition + offset, self.speakGeneration)
             onRangeChange?(NSRange(location: basePosition + offset, length: segmentLen - offset))
 
             // 段落内高亮跟随：每 0.5 秒按比例更新当前位置
@@ -298,7 +303,7 @@ final class EdgeTTSSynthesizer: NSObject, SpeechSynthesizerProtocol {
             let progress = player.duration > 0 ? player.currentTime / player.duration : 0
             let charOffset = seekOffset + Int(Double(segmentLength - seekOffset) * progress)
             let absPos = basePosition + charOffset
-            self.onPositionChange?(absPos)
+            self.onPositionChange?(absPos, self.speakGeneration)
             self.onRangeChange?(NSRange(location: absPos, length: max(0, segmentLength - charOffset)))
         }
     }

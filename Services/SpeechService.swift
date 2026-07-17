@@ -9,7 +9,7 @@ private var utteranceGenerationKey: UInt8 = 0
 final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesizerDelegate {
 
     private(set) var state: PlaybackState = .idle
-    var onPositionChange: ((Int) -> Void)?
+    var onPositionChange: ((Int, UInt64) -> Void)?
     var onRangeChange: ((NSRange) -> Void)?
     var onError: ((Error) -> Void)?
 
@@ -18,7 +18,7 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
     private var config: VoiceConfig = .defaultConfig
     private var currentRange = NSRange(location: 0, length: 0)
     /// 递增计数器，防止 seek 后旧 utterance 的 didFinish 回调触发续播
-    private var speakGeneration: UInt64 = 0
+    private(set) var speakGeneration: UInt64 = 0
 
     private static let charsPerSecond: Int = 3
 
@@ -156,24 +156,22 @@ final class SpeechService: NSObject, SpeechSynthesizerProtocol, AVSpeechSynthesi
                 return
             }
             if nextPosition >= nsText.length {
-                self.onPositionChange?(nsText.length)
+                self.onPositionChange?(nsText.length, self.speakGeneration)
                 self.updateState(.finished)
             } else {
-                self.onPositionChange?(nextPosition)
+                self.onPositionChange?(nextPosition, self.speakGeneration)
                 self.speak(text: self.fullText, from: nextPosition, config: self.config)
             }
         }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, willSpeakRangeOfSpeechString characterRange: NSRange, utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            let pos = self.currentRange.location + characterRange.location
-            let range = NSRange(location: self.currentRange.location + characterRange.location,
-                                length: characterRange.length)
-            self.onPositionChange?(pos)
-            self.onRangeChange?(range)
-        }
+        // 同步调用（AVSpeechSynthesizer delegate 已在主线程），
+        // 确保 generation 在回调时刻被捕获，避免 Task 异步延迟导致过期
+        let pos = self.currentRange.location + characterRange.location
+        let range = NSRange(location: pos, length: characterRange.length)
+        self.onPositionChange?(pos, self.speakGeneration)
+        self.onRangeChange?(range)
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
